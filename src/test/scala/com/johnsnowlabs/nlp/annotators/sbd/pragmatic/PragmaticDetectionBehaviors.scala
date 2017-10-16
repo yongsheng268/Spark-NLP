@@ -15,7 +15,7 @@ trait PragmaticDetectionBehaviors { this: FlatSpec =>
     val sentencesAnnotations = sentences
       .collect
       .flatMap { r => r.getSeq[Row](0) }
-      .map { a => Annotation(a.getString(0), a.getInt(1), a.getInt(2), a.getMap[String, String](3)) }
+      .map { a => Annotation(AnnotatorType.withName(a.getString(0)), a.getInt(1), a.getInt(2), a.getMap[String, String](3)) }
     val corpus = sentencesAnnotations
       .flatMap { a => a.metadata.get("sbd") }
       .mkString("")
@@ -64,7 +64,7 @@ trait PragmaticDetectionBehaviors { this: FlatSpec =>
     it should "add annotators of type sbd" in {
       val f = fixture(dataset)
       f.sentencesAnnotations.foreach { a =>
-        assert(a.annotatorType == AnnotatorType.DOCUMENT, "annotatorType should sbd")
+        assert(a.annotatorType == AnnotatorType.DOCUMENT.toString, "annotatorType should sbd")
       }
     }
   }

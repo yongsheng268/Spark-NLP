@@ -35,7 +35,7 @@ trait DateMatcherBehaviors extends FlatSpec {
     it should "create annotations with the correct type" in {
       val f = fixture(dataset)
       f.dateAnnotations.foreach { a =>
-        assert(a.annotatorType == DATE)
+        assert(a.annotatorType == DATE.toString)
       }
     }
   }

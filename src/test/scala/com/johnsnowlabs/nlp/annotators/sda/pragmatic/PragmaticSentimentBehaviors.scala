@@ -35,7 +35,7 @@ trait PragmaticSentimentBehaviors { this: FlatSpec =>
     it should "create annotations with the correct type" in {
       val f = fixture(dataset)
       f.sdAnnotations.foreach { a =>
-        assert(a.annotatorType == SENTIMENT)
+        assert(a.annotatorType == SENTIMENT.toString)
       }
     }
 

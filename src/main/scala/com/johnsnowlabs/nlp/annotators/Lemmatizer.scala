@@ -51,7 +51,7 @@ class Lemmatizer(override val uid: String) extends AnnotatorModel[Lemmatizer] {
         annotatorType,
         tokenAnnotation.begin,
         tokenAnnotation.end,
-        Map[String, String](annotatorType -> $(lemmaDict).getOrElse(token, token), "sentence" -> sentence)
+        Map[String, String](annotatorType.toString -> $(lemmaDict).getOrElse(token, token), "sentence" -> sentence)
       )
     }
   }

@@ -1,5 +1,6 @@
 package com.johnsnowlabs.nlp
 
+import com.johnsnowlabs.nlp.AnnotatorType.AnnotatorType
 import org.apache.spark.ml.param.{Params, StringArrayParam}
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.types.StructType
@@ -7,7 +8,7 @@ import org.apache.spark.sql.types.StructType
 trait HasInputAnnotationCols extends Params {
 
   /** Annotator reference id. Used to identify elements in metadata or to refer to this annotator type */
-  val requiredAnnotatorTypes: Array[String]
+  val requiredAnnotatorTypes: Array[AnnotatorType]
 
   /**
     * columns that contain annotations necessary to run this annotator
@@ -26,7 +27,7 @@ trait HasInputAnnotationCols extends Params {
       schema.exists {
         field =>
           field.metadata.contains("annotatorType") &&
-            field.metadata.getString("annotatorType") == requiredAnnotatorType
+            field.metadata.getString("annotatorType") == requiredAnnotatorType.toString
       }
   }
 

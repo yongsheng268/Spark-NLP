@@ -31,7 +31,7 @@ class EntityExtractor(override val uid: String) extends AnnotatorModel[EntityExt
 
   override val requiredAnnotatorTypes: Array[AnnotatorType] = Array(DOCUMENT)
 
-  setDefault(inputCols, Array(DOCUMENT))
+  setDefault(inputCols, Array(DOCUMENT.toString))
 
   /** internal constructor for writabale annotator */
   def this() = this(Identifiable.randomUID("ENTITY_EXTRACTOR"))
@@ -84,10 +84,10 @@ class EntityExtractor(override val uid: String) extends AnnotatorModel[EntityExt
         }.map {
           phrase =>
             Annotation(
-              "entity",
+              ENTITY,
               phrase.head.begin,
               phrase.last.end,
-              Map(annotatorType -> phrase.map(_.metadata(TOKEN)).mkString(" "))
+              Map(annotatorType.toString -> phrase.map(_.metadata(TOKEN)).mkString(" "))
             )
         }
     }.toSeq

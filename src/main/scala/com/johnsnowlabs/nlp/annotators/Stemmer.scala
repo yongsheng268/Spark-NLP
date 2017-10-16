@@ -39,7 +39,7 @@ class Stemmer(override val uid: String) extends AnnotatorModel[Stemmer] {
           annotatorType,
           tokenAnnotation.begin,
           tokenAnnotation.end,
-          Map(annotatorType -> stem, "sentence" -> tokenAnnotation.metadata("sentence"))
+          Map(annotatorType.toString -> stem, "sentence" -> tokenAnnotation.metadata("sentence"))
         )
     }
 

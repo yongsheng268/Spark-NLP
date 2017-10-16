@@ -13,14 +13,14 @@ class DependencyParserTest extends FlatSpec {
       .collect
       .flatMap { r => r.getSeq[Row](0) }
       .map { r =>
-        Annotation(r.getString(0), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
+        Annotation(AnnotatorType.withName(r.getString(0)), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
       }
     val tokens = df.select("token")
     val tokenAnnotations = tokens
       .collect
       .flatMap { r => r.getSeq[Row](0) }
       .map { r =>
-        Annotation(r.getString(0), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
+        Annotation(AnnotatorType.withName(r.getString(0)), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
       }
   }
 
@@ -32,7 +32,7 @@ class DependencyParserTest extends FlatSpec {
   it should "add annotations with the correct annotationType" in {
     val f = fixture
     f.depAnnotations.foreach { a =>
-       assert(a.annotatorType == AnnotatorType.DEPENDENCY, s"Annotation type should ${AnnotatorType.DEPENDENCY}")
+       assert(a.annotatorType == AnnotatorType.DEPENDENCY.toString, s"Annotation type should ${AnnotatorType.DEPENDENCY}")
     }
   }
 

@@ -47,8 +47,17 @@ object Annotation {
     AnnotatorType.DOCUMENT,
     0,
     rawText.length,
-    Map(AnnotatorType.DOCUMENT -> rawText)
+    Map(AnnotatorType.DOCUMENT.toString -> rawText)
   )
+
+  /**
+    * This method converts a [[org.apache.spark.sql.Row]] into an [[Annotation]]
+    * @param row spark row to be converted
+    * @return annotation
+    */
+  def apply(row: Row): Annotation = {
+    Annotation(AnnotatorType.withName(row.getString(0)), row.getInt(1), row.getInt(2), row.getMap[String, String](3))  }
+
 
   /** dataframe collect of a specific annotation column*/
   def collect(dataset: Dataset[Row], column: String): Array[Array[Annotation]] = {
@@ -91,16 +100,6 @@ object Annotation {
     udf {
       (annotations: Seq[Row]) => annotations.map(_.getMap[String, String](3).mkString(vSep)).mkString(aSep)
     }
-  }
-
-
-  /**
-    * This method converts a [[org.apache.spark.sql.Row]] into an [[Annotation]]
-    * @param row spark row to be converted
-    * @return annotation
-    */
-  def apply(row: Row): Annotation = {
-    Annotation(row.getString(0), row.getInt(1), row.getInt(2), row.getMap[String, String](3))
   }
 
 }

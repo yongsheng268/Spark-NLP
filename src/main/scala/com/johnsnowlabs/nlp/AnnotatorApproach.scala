@@ -45,7 +45,7 @@ abstract class AnnotatorApproach[M <: Model[M]]
           s"column [$annotationColumn] must be an NLP Annotation column")
     }
     val metadataBuilder: MetadataBuilder = new MetadataBuilder()
-    metadataBuilder.putString("annotatorType", annotatorType)
+    metadataBuilder.putString("annotatorType", annotatorType.toString)
     val outputFields = schema.fields :+
       StructField(getOutputCol, ArrayType(Annotation.dataType), nullable = false, metadataBuilder.build)
     StructType(outputFields)

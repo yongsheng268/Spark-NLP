@@ -48,7 +48,7 @@ abstract class AnnotatorModel[M <: Model[M]]
   /** requirement for pipeline transformation validation. It is called on fit() */
   override final def transformSchema(schema: StructType): StructType = {
     val metadataBuilder: MetadataBuilder = new MetadataBuilder()
-    metadataBuilder.putString("annotatorType", annotatorType)
+    metadataBuilder.putString("annotatorType", annotatorType.toString)
     val outputFields = schema.fields :+
       StructField(getOutputCol, outputDataType, nullable = false, metadataBuilder.build)
     StructType(outputFields)
@@ -65,7 +65,7 @@ abstract class AnnotatorModel[M <: Model[M]]
     require(validate(dataset.schema), s"Missing annotators in pipeline. Make sure the following are present: " +
       s"${requiredAnnotatorTypes.mkString(", ")}")
     val metadataBuilder: MetadataBuilder = new MetadataBuilder()
-    metadataBuilder.putString("annotatorType", annotatorType)
+    metadataBuilder.putString("annotatorType", annotatorType.toString)
     dataset.withColumn(
       getOutputCol,
       dfAnnotate(

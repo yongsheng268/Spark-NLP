@@ -60,7 +60,7 @@ class DateMatcher(override val uid: String) extends AnnotatorModel[DateMatcher] 
 
   override val requiredAnnotatorTypes: Array[AnnotatorType] = Array(DOCUMENT)
 
-  setDefault(inputCols, Array(DOCUMENT))
+  setDefault(inputCols, Array(DOCUMENT.toString))
 
   /** Internal constructor to submit a random UID */
   def this() = this(Identifiable.randomUID("DATE"))
@@ -299,7 +299,7 @@ class DateMatcher(override val uid: String) extends AnnotatorModel[DateMatcher] 
         annotatorType,
         matchedDate.start,
         matchedDate.end - 1,
-        Map(annotatorType -> simpleDateFormat.format(matchedDate.calendar.getTime)))
+        Map(annotatorType.toString -> simpleDateFormat.format(matchedDate.calendar.getTime)))
       )
     )
   }

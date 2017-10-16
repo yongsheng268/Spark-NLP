@@ -8,9 +8,9 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
 class DependencyParserModel(override val uid: String) extends AnnotatorModel[DependencyParserModel] {
   def this() = this(Identifiable.randomUID(DEPENDENCY))
 
-  override val annotatorType: String = DEPENDENCY
+  override val annotatorType: AnnotatorType = DEPENDENCY
 
-  override val requiredAnnotatorTypes =  Array[String](DOCUMENT, POS, TOKEN)
+  override val requiredAnnotatorTypes: Array[AnnotatorType] =  Array[AnnotatorType](DOCUMENT, POS, TOKEN)
 
   override def annotate(annotations: Seq[Annotation]): Seq[Annotation] = {
     val model = new GreedyTransitionApproach

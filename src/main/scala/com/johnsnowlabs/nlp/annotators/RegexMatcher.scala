@@ -45,7 +45,7 @@ class RegexMatcher(override val uid: String) extends AnnotatorModel[RegexMatcher
 
   override val requiredAnnotatorTypes: Array[AnnotatorType] = Array(DOCUMENT)
 
-  setDefault(inputCols, Array(DOCUMENT))
+  setDefault(inputCols, Array(DOCUMENT.toString))
 
   setDefault(rulesPath, "__default")
 

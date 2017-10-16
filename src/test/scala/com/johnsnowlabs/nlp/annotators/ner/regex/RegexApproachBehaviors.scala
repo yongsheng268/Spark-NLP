@@ -32,7 +32,7 @@ trait RegexApproachBehaviors { this: FlatSpec =>
 
     it should "tag words with the appropiate annotator type" in {
       val f = fixture(dataset)
-      f.nerAnnotations.foreach { a => assert(a.annotatorType == NAMED_ENTITY) }
+      f.nerAnnotations.foreach { a => assert(a.annotatorType == NAMED_ENTITY.toString) }
     }
   }
 }

@@ -30,7 +30,7 @@ class SentenceDetectorModel(override val uid: String) extends AnnotatorModel[Sen
 
   override val requiredAnnotatorTypes: Array[AnnotatorType] = Array(DOCUMENT)
 
-  setDefault(inputCols, Array(DOCUMENT))
+  setDefault(inputCols, Array(DOCUMENT.toString))
 
   /**
     * Uses the model interface to prepare the context and extract the boundaries
@@ -47,7 +47,7 @@ class SentenceDetectorModel(override val uid: String) extends AnnotatorModel[Sen
         this.annotatorType,
         sentence.begin,
         sentence.end,
-        Map[String, String](annotatorType -> sentence.content)
+        Map[String, String](annotatorType.toString -> sentence.content)
       ))
     })
   }

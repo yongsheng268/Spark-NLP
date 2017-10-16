@@ -73,7 +73,7 @@ class ViveknSentimentModel(override val uid: String) extends AnnotatorModel[Vive
         annotatorType,
         0,
         0,
-        Map(annotatorType -> {
+        Map(annotatorType.toString -> {
           val targetTokens = tokens
             .filter(token => token.begin >= sentence.begin && token.end <= sentence.end)
             .flatMap(_.metadata.values)

@@ -29,7 +29,7 @@ class RegexTokenizer(override val uid: String) extends AnnotatorModel[RegexToken
 
   def getPattern: String = $(pattern)
 
-  setDefault(inputCols, Array(DOCUMENT))
+  setDefault(inputCols, Array(DOCUMENT.toString))
 
   /** A RegexTokenizer could require only for now a SentenceDetectorModel annotator */
   override val requiredAnnotatorTypes: Array[AnnotatorType] = Array[AnnotatorType](DOCUMENT)
@@ -48,7 +48,7 @@ class RegexTokenizer(override val uid: String) extends AnnotatorModel[RegexToken
           text.begin + m.start,
           text.begin + m.end - 1,
           Map(
-            annotatorType -> m.matched,
+            annotatorType.toString -> m.matched,
             "sentence" -> sentenceIndex.toString
           )
         )

@@ -12,7 +12,7 @@ class TokenAssembler(override val uid: String) extends AnnotatorModel[TokenAssem
 
   override val annotatorType: AnnotatorType = DOCUMENT
 
-  override val requiredAnnotatorTypes: Array[String] = Array(TOKEN)
+  override val requiredAnnotatorTypes: Array[AnnotatorType] = Array(TOKEN)
 
   def this() = this(Identifiable.randomUID("TOKEN_ASSEMBLER"))
 
@@ -23,7 +23,7 @@ class TokenAssembler(override val uid: String) extends AnnotatorModel[TokenAssem
             DOCUMENT,
             sentenceAnnotations.minBy(_.begin).begin,
             sentenceAnnotations.maxBy(_.end).end,
-            Map(DOCUMENT -> sentenceAnnotations.map(_.metadata(TOKEN)).mkString(" "))
+            Map(DOCUMENT.toString -> sentenceAnnotations.map(_.metadata(TOKEN)).mkString(" "))
           )
       }.toSeq
   }

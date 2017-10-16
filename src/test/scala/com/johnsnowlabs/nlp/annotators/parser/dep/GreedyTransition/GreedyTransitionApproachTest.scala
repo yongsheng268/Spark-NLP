@@ -1,8 +1,9 @@
 package com.johnsnowlabs.nlp.annotators.parser.dep.GreedyTransition
 
-import com.johnsnowlabs.nlp.{Annotation, AnnotatorBuilder, ContentProvider, DataBuilder}
+import com.johnsnowlabs.nlp._
 import org.apache.spark.sql.Row
 import org.scalatest.FlatSpec
+
 import scala.language.reflectiveCalls
 import org.scalatest.Matchers._
 
@@ -15,7 +16,7 @@ class GreedyTransitionApproachTest extends FlatSpec {
       .collect
       .flatMap { r => r.getSeq[Row](0) }
       .map { r =>
-        Annotation(r.getString(0), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
+        Annotation(AnnotatorType.withName(r.getString(0)), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
       }
       .sortBy { _.begin }
     val posTags = df.select("pos")
@@ -23,7 +24,7 @@ class GreedyTransitionApproachTest extends FlatSpec {
       .collect
       .flatMap { r => r.getSeq[Row](0) }
       .map { r =>
-        Annotation(r.getString(0), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
+        Annotation(AnnotatorType.withName(r.getString(0)), r.getInt(1), r.getInt(2), r.getMap[String, String](3))
       }
       .sortBy { _.begin }
   }

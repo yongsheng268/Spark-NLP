@@ -17,11 +17,11 @@ trait RegexTokenizerBehaviors { this: FlatSpec =>
     val sentencesAnnotations = sentences
       .collect
       .flatMap { r => r.getSeq[Row](0) }
-      .map { a => Annotation(a.getString(0), a.getInt(1), a.getInt(2), a.getMap[String, String](3)) }
+      .map { a => Annotation(AnnotatorType.withName(a.getString(0)), a.getInt(1), a.getInt(2), a.getMap[String, String](3)) }
     val tokensAnnotations = tokens
       .collect
       .flatMap { r => r.getSeq[Row](0)}
-      .map { a => Annotation(a.getString(0), a.getInt(1), a.getInt(2), a.getMap[String, String](3)) }
+      .map { a => Annotation(AnnotatorType.withName(a.getString(0)), a.getInt(1), a.getInt(2), a.getMap[String, String](3)) }
     val corpus = sentencesAnnotations
       .flatMap { a => a.metadata.get(AnnotatorType.DOCUMENT) }
       .mkString("")
@@ -37,7 +37,7 @@ trait RegexTokenizerBehaviors { this: FlatSpec =>
       val f = fixture(dataset)
       assert(f.tokensAnnotations.nonEmpty, "RegexTokenizer should add annotators")
       f.tokensAnnotations.foreach { a =>
-        assert(a.annotatorType == AnnotatorType.TOKEN, "RegexTokenizer annotations type should be equal to 'token'")
+        assert(a.annotatorType == AnnotatorType.TOKEN.toString, "RegexTokenizer annotations type should be equal to 'token'")
       }
     }
 

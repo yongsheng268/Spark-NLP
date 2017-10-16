@@ -33,7 +33,7 @@ class Normalizer(override val uid: String) extends AnnotatorModel[Normalizer] {
         .toLowerCase
         .replaceAll($(pattern), "")
         .trim
-      Annotation(annotatorType, token.begin, token.end, Map(annotatorType -> nToken, "sentence" -> token.metadata("sentence")))
+      Annotation(annotatorType, token.begin, token.end, Map(annotatorType.toString -> nToken, "sentence" -> token.metadata("sentence")))
     }.filter(_.metadata(annotatorType).nonEmpty)
 
 }

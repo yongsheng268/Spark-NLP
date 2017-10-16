@@ -1,6 +1,7 @@
 package com.johnsnowlabs.nlp
 
+import com.johnsnowlabs.nlp.AnnotatorType.AnnotatorType
+
 trait HasAnnotatorType {
-  type AnnotatorType = String
   val annotatorType: AnnotatorType
 }

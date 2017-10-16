@@ -28,7 +28,7 @@ class DocumentAssembler(override val uid: String)
 
   val metadataCol: Param[String] = new Param[String](this, "metadataCol", "metadata for document column")
 
-  setDefault(outputCol, DOCUMENT)
+  setDefault(outputCol, DOCUMENT.toString)
 
   override val annotatorType: AnnotatorType = DOCUMENT
 
@@ -49,7 +49,7 @@ class DocumentAssembler(override val uid: String)
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
 
   private def assemble(text: String, metadata: Map[String, String]): Seq[Annotation] = {
-    Seq(Annotation(annotatorType, 0, text.length - 1, metadata ++ Map(annotatorType -> text)))
+    Seq(Annotation(annotatorType, 0, text.length - 1, metadata ++ Map(annotatorType.toString -> text)))
   }
 
   private def dfAssemble: UserDefinedFunction = udf {
@@ -75,7 +75,7 @@ class DocumentAssembler(override val uid: String)
   /** requirement for pipeline transformation validation. It is called on fit() */
   override final def transformSchema(schema: StructType): StructType = {
     val metadataBuilder: MetadataBuilder = new MetadataBuilder()
-    metadataBuilder.putString("annotatorType", annotatorType)
+    metadataBuilder.putString("annotatorType", annotatorType.toString)
     val outputFields = schema.fields :+
       StructField(getOutputCol, ArrayType(Annotation.dataType), nullable = false, metadataBuilder.build)
     StructType(outputFields)
@@ -83,7 +83,7 @@ class DocumentAssembler(override val uid: String)
 
   override def transform(dataset: Dataset[_]): DataFrame = {
     val metadataBuilder: MetadataBuilder = new MetadataBuilder()
-    metadataBuilder.putString("annotatorType", annotatorType)
+    metadataBuilder.putString("annotatorType", annotatorType.toString)
     val documentAnnotations =
       if (get(idCol).isDefined && get(metadataCol).isDefined)
         dfAssemble(

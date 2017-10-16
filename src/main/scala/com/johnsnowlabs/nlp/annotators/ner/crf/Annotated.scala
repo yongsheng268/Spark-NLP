@@ -8,7 +8,7 @@ import org.apache.spark.sql.{Dataset, Row}
 import Annotated._
 
 trait Annotated[TResult] {
-  def annotatorType: String
+  def annotatorType: AnnotatorType
 
   def unpack(annotations: Seq[Annotation]): Seq[TResult]
 
@@ -23,7 +23,7 @@ object Annotated {
 case class TextSentence(text: String, begin: Int, end: Int)
 
 object SentenceSplit extends Annotated[TextSentence] {
-  override def annotatorType: String = AnnotatorType.DOCUMENT
+  override def annotatorType: AnnotatorType = AnnotatorType.DOCUMENT
 
   override def unpack(annotations: Seq[Annotation]): Seq[TextSentence] = {
     annotations.filter(_.annotatorType == annotatorType)
@@ -33,14 +33,14 @@ object SentenceSplit extends Annotated[TextSentence] {
   }
 
   override def pack(items: Seq[TextSentence]): Seq[Annotation] = {
-    items.map(item => Annotation(annotatorType, item.begin, item.end, Map(annotatorType -> item.text)))
+    items.map(item => Annotation(annotatorType, item.begin, item.end, Map(annotatorType.toString -> item.text)))
   }
 }
 
 
 object Tokenized extends Annotated[TokenizedSentence] {
 
-  override def annotatorType = AnnotatorType.TOKEN
+  override def annotatorType: AnnotatorType = AnnotatorType.TOKEN
 
   override def unpack(annotations: Seq[Annotation]): Seq[TokenizedSentence] = {
     val tokens = annotations
@@ -71,7 +71,7 @@ object Tokenized extends Annotated[TokenizedSentence] {
 
   override def pack(items: Seq[TokenizedSentence]): Seq[Annotation] = {
     items.flatMap(sentence => sentence.indexedTokens.map(token =>
-      new Annotation(annotatorType, token.begin, token.end, Map(annotatorType -> token.token))))
+      new Annotation(annotatorType, token.begin, token.end, Map(annotatorType.toString -> token.token))))
   }
 }
 
@@ -113,11 +113,11 @@ trait Tagged[T >: TaggedSentence <: TaggedSentence] extends Annotated[T] {
 }
 
 object PosTagged extends Tagged[PosTaggedSentence]{
-  override def annotatorType: String = POS
+  override def annotatorType: AnnotatorType = POS
 }
 
 object NerTagged extends Tagged[NerTaggedSentence]{
-  override def annotatorType: String = NAMED_ENTITY
+  override def annotatorType: AnnotatorType = NAMED_ENTITY
 
   def collectNerInstances(dataset: Dataset[Row],
                           nerTaggedCols: Seq[String],

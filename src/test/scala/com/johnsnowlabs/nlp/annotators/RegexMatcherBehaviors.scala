@@ -34,7 +34,7 @@ trait RegexMatcherBehaviors { this: FlatSpec =>
     it should "create annotations with the correct tag" in {
       val f = fixture(dataset, rules, strategy)
       f.regexAnnotations.foreach { a =>
-        assert(a.annotatorType == REGEX)
+        assert(a.annotatorType == REGEX.toString)
       }
     }
   }
@@ -55,7 +55,7 @@ trait RegexMatcherBehaviors { this: FlatSpec =>
     it should "create annotations with the correct tag" in {
       val f = fixture(dataset, rules, strategy)
       f.regexAnnotations.foreach { a =>
-        assert(a.annotatorType == REGEX)
+        assert(a.annotatorType == REGEX.toString)
       }
     }
   }
