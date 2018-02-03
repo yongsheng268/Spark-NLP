@@ -1,5 +1,6 @@
 package com.johnsnowlabs.nlp
 
+import com.johnsnowlabs.utils.models.{ResourceConsumer, ResourceConsumerParams}
 import org.apache.spark.ml.Model
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
@@ -19,7 +20,9 @@ abstract class AnnotatorModel[M <: Model[M]]
     with HasAnnotatorType
     with HasInputAnnotationCols
     with HasOutputAnnotationCol
-    with TransformModelSchema {
+    with TransformModelSchema
+    with ResourceConsumer {
+
 
   /**
     * internal types to show Rows as a relevant StructType
