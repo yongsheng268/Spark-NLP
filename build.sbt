@@ -77,14 +77,17 @@ lazy val analyticsDependencies = Seq(
 )
 
 lazy val testDependencies = Seq(
-  "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+  "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+  "org.scalamock" %% "scalamock" % "4.0.+" % Test
+
 )
 
 lazy val utilDependencies = Seq(
   "com.typesafe" % "config" % "1.3.0",
   "org.rocksdb" % "rocksdbjni" % "5.8.0",
   "org.slf4j" % "slf4j-api" % "1.7.25",
-  "org.apache.commons" % "commons-compress" % "1.15"
+  "org.apache.commons" % "commons-compress" % "1.15",
+  "org.scalaj" %% "scalaj-http" % "2.3.0"
 )
 
 lazy val root = (project in file("."))
