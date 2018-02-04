@@ -1,5 +1,7 @@
 package com.johnsnowlabs.utils.models
 
+import com.johnsnowlabs.util.resolvers.commons.SemVer
+
 trait ResourceConsumer extends ResourceConsumerParams {
   def getModelName = get(rModelName)
 
@@ -11,7 +13,7 @@ trait ResourceConsumer extends ResourceConsumerParams {
 
   def getOnlineModel: OnlineModel = OnlineModel(
     getModelName.get,
-    ModelVersion(getModelVersion.getOrElse("0.0.0")),
+    SemVer(getModelVersion.getOrElse("0.0.0")),
     "annotatorType"
   )
 }

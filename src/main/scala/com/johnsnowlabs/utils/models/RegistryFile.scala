@@ -1,10 +1,12 @@
 package com.johnsnowlabs.utils.models
 
+import com.johnsnowlabs.util.resolvers.commons.SemVer
+
 case class RegistryModel(
-                        modelName: String,
-                        modelType: String,
-                        modelVersion: ModelVersion,
-                        modelUri: String
+                          modelName: String,
+                          modelType: String,
+                          modelVersion: SemVer,
+                          modelUri: String
                         )
 
 case class RegistryFile(

@@ -7,4 +7,5 @@ trait Tokenizer extends Serializable {
 
   def tokenize(sent: String) : Array[String]
 
+
 }

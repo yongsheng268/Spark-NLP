@@ -1,5 +1,7 @@
 package com.johnsnowlabs.utils.models
 
+import com.johnsnowlabs.util.resolvers.commons.SemVer
+
 import scala.collection.mutable
 
 object ModelDownloader {
@@ -24,6 +26,6 @@ object ModelDownloader {
   }
 
   def resolveModelWith(resolverName: ResolverName, modelName: String, modelVersion: String, modelType: String) : DownloadedModel = {
-    resolveModelWith(resolverName, OnlineModel(modelName, ModelVersion(modelVersion), modelType))
+    resolveModelWith(resolverName, OnlineModel(modelName, SemVer(modelVersion), modelType))
   }
 }

@@ -4,10 +4,13 @@ import scalaj.http._
 import org.json4s._
 import org.json4s.jackson.JsonMethods.parse
 import com.johnsnowlabs.nlp.util.ConfigHelper
+
 import sys.process._
 import java.net.URL
 import java.io.File
 import java.nio.file.Paths
+
+import com.johnsnowlabs.util.resolvers.commons.SemVer
 
 import scala.reflect.io.Streamable.Bytes
 
@@ -33,7 +36,7 @@ class JslModelResolver(registryRepo: String) extends ModelResolver {
     val json = parse(response)
     val models = json.extract[JsonRegistry].modelTypes.flatMap { modelType: JsonModelType =>
       modelType.models.map { model =>
-       RegistryModel(model.modelName, modelType.modelType, ModelVersion(model.modelVersion), model.modelUri)
+       RegistryModel(model.modelName, modelType.modelType, SemVer(model.modelVersion), model.modelUri)
       }
     }
     registryFile = Some(RegistryFile(models))
