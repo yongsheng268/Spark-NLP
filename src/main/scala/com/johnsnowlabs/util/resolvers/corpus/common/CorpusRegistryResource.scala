@@ -7,7 +7,7 @@ case class CorpusRegistryResource(
                                    corpusName: String,
                                    corpusType: String,
                                    corpusVersion: SemVer,
-                                   corpusUri: String
+                                   corpusUri: String = ""
                          ) {
 
 }
@@ -16,7 +16,6 @@ object CorpusRegistryResource {
   def apply(corpus: AnnotatorCorpus) = new CorpusRegistryResource(
     corpus.name,
     corpus.corpusType,
-    corpus.version,
-    ""
+    corpus.version
   )
 }

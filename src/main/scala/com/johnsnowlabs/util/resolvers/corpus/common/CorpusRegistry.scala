@@ -7,7 +7,7 @@ case class CorpusRegistry(
                     ) {
   def length: Int = this.modelList.length
 
-  def size = length
+  def size: Int = length
 
   def hasCorpus(corpus: CorpusRegistryResource): Boolean = {
     modelList.exists {
