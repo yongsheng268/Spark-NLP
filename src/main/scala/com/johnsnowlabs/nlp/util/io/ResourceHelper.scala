@@ -90,7 +90,14 @@ object ResourceHelper {
 
   /** Checks whether a path points to directory */
   def pathIsDirectory(path: String): Boolean = {
-    new File(path).isDirectory
+    if (new File(path).exists) new File(path).isDirectory
+    else {
+      val resource = getClass.getClassLoader.getResource(path.stripPrefix("/"))
+      if (resource != null) {
+        if (resource.getProtocol == "file" ) new File(resource.getPath).isDirectory
+        else false
+      } else false
+    }
   }
 
   def createDatasetFromText(
