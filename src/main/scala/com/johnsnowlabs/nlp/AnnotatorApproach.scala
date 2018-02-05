@@ -1,6 +1,5 @@
 package com.johnsnowlabs.nlp
 
-import com.johnsnowlabs.utils.models.ResourceConsumer
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.{Estimator, Model, PipelineModel}
 import org.apache.spark.sql.{Dataset, SparkSession}
@@ -19,7 +18,6 @@ abstract class AnnotatorApproach[M <: Model[M]]
     with HasInputAnnotationCols
     with HasOutputAnnotationCol
     with HasAnnotatorType
-    with ResourceConsumer
     with DefaultParamsWritable {
 
   val description: String
