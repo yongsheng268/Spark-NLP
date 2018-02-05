@@ -1,5 +1,5 @@
 package com.johnsnowlabs.util.store.common
 
-case class StoredResource[A](path: String) {
+case class StoredResource[A](path: String, resource: A) {
 
 }

@@ -14,8 +14,13 @@ class AnnotatorCorpus(
   }
 
   def corpusType: String = _corpusType
+
+  def stringId: String = s"${name}-${version}-${corpusType}"
 }
 
 object AnnotatorCorpus {
+  def apply(name: String, corpusType: String, ver: SemVer): AnnotatorCorpus =
+    new AnnotatorCorpus(name, corpusType, ver)
+
   def apply(): AnnotatorCorpus = { new AnnotatorCorpus() }
 }
