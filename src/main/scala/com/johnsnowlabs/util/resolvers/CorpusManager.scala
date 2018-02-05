@@ -22,10 +22,10 @@ object CorpusManager extends BaseManager {
 
 
   def retrieve(corpus: AnnotatorCorpus): DownloadedResource[AnnotatorCorpus] = {
-    if (isCorpusCached(corpus)) {
-      retrieveFromCache(corpus)
+    if (this.isCorpusCached(corpus)) {
+      this.retrieveFromCache(corpus)
     } else {
-      retrieveFromRepo(corpus)
+      this.retrieveFromRepo(corpus)
     }
   }
 
@@ -42,7 +42,7 @@ object CorpusManager extends BaseManager {
     val corpusRegistry: CorpusRegistry = resolver.getRegistry.get
 
     if (corpusRegistry.hasCorpus(corpus)) {
-      val body: Option[Array[Byte]] = resolver.getCorpus(corpus)
+      val body: Option[Array[Byte]] = resolver.getCorpus(corpusRegistry.findCorpus(corpus))
       val storedResource: StoredResource[AnnotatorCorpus] = ResourceStoreManager.createOrReplaceResource(corpus, body.get)
       DownloadedResource(storedResource.path, corpus)
     } else {

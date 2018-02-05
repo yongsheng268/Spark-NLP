@@ -26,4 +26,8 @@ case class CorpusRegistry(
         corpus.corpusName == corpusName && corpus.corpusType == corpusType && corpus.corpusVersion == corpusVersion
     }.get
   }
+
+  def findCorpus(corpus: AnnotatorCorpus): CorpusRegistryResource = {
+    this.findCorpus(CorpusRegistryResource(corpus))
+  }
 }

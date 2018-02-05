@@ -50,14 +50,14 @@ class ResourceStoreManagerSpec extends FlatSpec with Matchers with BeforeAndAfte
     val f = fixture()
     val res = ResourceStoreManager.createOrReplaceResource(f.annotatorCorpus, f.corpusFile)
     Files.exists(Paths.get(res.path)) shouldBe true
-    Files.exists(Paths.get(res.path, ResourceStoreManager.rawCorpusFile)) shouldBe true
-    Files.exists(Paths.get(res.path, ResourceStoreManager.corpusMetadataFile)) shouldBe true
+    Files.exists(Paths.get(res.storePath, ResourceStoreManager.rawCorpusFile)) shouldBe true
+    Files.exists(Paths.get(res.storePath, ResourceStoreManager.corpusMetadataFile)) shouldBe true
   }
 
   it should "save corpus with the correct content" in {
     val f = fixture()
     val res = ResourceStoreManager.createOrReplaceResource(f.annotatorCorpus, f.corpusFile)
-    val f1 = new FileInputStream(Paths.get(res.path, ResourceStoreManager.rawCorpusFile).toString)
+    val f1 = new FileInputStream(Paths.get(res.storePath, ResourceStoreManager.rawCorpusFile).toString)
     val storedBytes = for { i <- 0 until f1.available() } yield f1.read.asInstanceOf[Byte]
     storedBytes shouldBe f.corpusFile.toSeq
   }
@@ -65,7 +65,7 @@ class ResourceStoreManagerSpec extends FlatSpec with Matchers with BeforeAndAfte
   it should "save AnnotatorCorpus metadata with the same values of the AnnotatorCorpus" in {
     val f = fixture()
     val res = ResourceStoreManager.createOrReplaceResource(f.annotatorCorpus, f.corpusFile)
-    val f1 = FileUtils.readFileToString(new File(Paths.get(res.path, ResourceStoreManager.corpusMetadataFile).toString))
+    val f1 = FileUtils.readFileToString(new File(Paths.get(res.storePath, ResourceStoreManager.corpusMetadataFile).toString))
     val jsonAnnotatorCorpus = read[ResourceStoreManager.JsonAnnotatorCorpus](f1)
     jsonAnnotatorCorpus.corpusName shouldBe f.annotatorCorpus.name
     jsonAnnotatorCorpus.corpusType shouldBe f.annotatorCorpus.corpusType

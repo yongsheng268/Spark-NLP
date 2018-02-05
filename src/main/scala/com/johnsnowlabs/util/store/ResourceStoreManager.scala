@@ -3,15 +3,14 @@ package com.johnsnowlabs.util.store
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.nio.file.{FileAlreadyExistsException, Files, Paths}
 
-import com.johnsnowlabs.util.resolvers.commons.SemVer
-import com.johnsnowlabs.util.{AnnotatorCorpus, AnnotatorResource}
+import com.johnsnowlabs.util.AnnotatorCorpus
 import com.johnsnowlabs.util.store.common.StoredResource
 import org.apache.commons.io.FileUtils
 import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization.write
 
 object ResourceStoreManager {
-  implicit val formats = DefaultFormats
+  implicit val formats: DefaultFormats = DefaultFormats
 
   val rawCorpusFile: String = "corpus"
   val corpusMetadataFile: String = "metadata"
@@ -22,9 +21,9 @@ object ResourceStoreManager {
 
   def getStoreFolderPath: String = _storeFolderPath
 
-  def setStoreFolderPath(path: String) = { _storeFolderPath = path }
+  def setStoreFolderPath(path: String): Unit = { _storeFolderPath = path }
 
-  def createStoreFolder: Unit = {
+  def createStoreFolder(): Unit = {
     try {
       Files.createDirectory(Paths.get(this.getStoreFolderPath))
     } catch {
@@ -33,12 +32,12 @@ object ResourceStoreManager {
     }
   }
 
-  def initialSetup: Unit = {
-    createStoreFolder
+  def initialSetup(): Unit = {
+    createStoreFolder()
   }
 
   def createOrReplaceResource(corpus: AnnotatorCorpus, content: Array[Byte]): StoredResource[AnnotatorCorpus] = {
-    this.initialSetup
+    this.initialSetup()
 
     val folderNameForResource: String = this.folderNameForResource(corpus)
     try {
@@ -49,13 +48,17 @@ object ResourceStoreManager {
     } catch {
       case e: Throwable => e.printStackTrace()
     }
-    StoredResource[AnnotatorCorpus](folderNameForResource, corpus)
+    StoredResource[AnnotatorCorpus](
+      Paths.get(folderNameForResource, rawCorpusFile).toString,
+      folderNameForResource,
+      corpus
+    )
   }
 
   def folderNameForResource(corpus: AnnotatorCorpus): String =
     Paths.get(this.getStoreFolderPath, corpus.stringId).toAbsolutePath.toString
 
-  def saveResourceContent(str: String, bytes: Array[Byte]) = {
+  def saveResourceContent(str: String, bytes: Array[Byte]): Unit = {
     val outStream = new FileOutputStream(str)
     outStream.write(bytes)
     outStream.close()

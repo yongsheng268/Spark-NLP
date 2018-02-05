@@ -90,8 +90,7 @@ object ResourceHelper {
 
   /** Checks whether a path points to directory */
   def pathIsDirectory(path: String): Boolean = {
-    //ToDo: Improve me???
-    if (path.contains(".txt")) false else true
+    new File(path).isDirectory
   }
 
   def createDatasetFromText(

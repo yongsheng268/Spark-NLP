@@ -1,21 +1,22 @@
 package com.johnsnowlabs.util.resolvers.corpus
 
-import java.io.{FileOutputStream, InputStream}
-import java.net.URL
-
 import com.johnsnowlabs.nlp.util.ConfigHelper
 import com.johnsnowlabs.util.AnnotatorCorpus
 import com.johnsnowlabs.util.resolvers.commons.SemVer
 import com.johnsnowlabs.util.resolvers.corpus.common.CorpusRegistryResource
 import com.johnsnowlabs.util.resolvers.corpus.common.CorpusRegistry
-import com.johnsnowlabs.utils.models._
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
 
 import scalaj.http.{Http, HttpResponse}
 
+
 class HttpCorpusResolver(registryUri: String) extends CorpusResolver {
-  implicit val formats = DefaultFormats
+  implicit val formats: DefaultFormats = DefaultFormats
+
+  case class JsonCorpus(modelName: String, modelVersion: String, modelUri: String)
+  case class JsonCorpusType(corpusType: String, models: List[JsonCorpus])
+  case class JsonCorpusRegistry(regVersion: String, corpusTypes: List[JsonCorpusType])
 
   def this() = this(ConfigHelper.retrieve.getString("corpusResolver.httpResolver.registryUri"))
 
@@ -24,15 +25,17 @@ class HttpCorpusResolver(registryUri: String) extends CorpusResolver {
       val response: HttpResponse[String] = Http(registryUri).asString
       parseRegistry(response.body)
     } catch {
-      case _: Throwable => Some(CorpusRegistry(List[CorpusRegistryResource]()))
+      case e: Throwable =>
+        e.printStackTrace()
+        None
     }
   }
 
   def parseRegistry(response: String): Option[CorpusRegistry] = {
     val json = parse(response)
-    val models = json.extract[JsonRegistry].modelTypes.flatMap { modelType: JsonModelType =>
-      modelType.models.map { model =>
-        CorpusRegistryResource(model.modelName, modelType.modelType, SemVer(model.modelVersion), model.modelUri)
+    val models = json.extract[JsonCorpusRegistry].corpusTypes.flatMap { corpusType: JsonCorpusType =>
+      corpusType.models.map { model =>
+        CorpusRegistryResource(model.modelName, corpusType.corpusType, SemVer(model.modelVersion), model.modelUri)
       }
     }
     Some(CorpusRegistry(models))
@@ -51,5 +54,5 @@ class HttpCorpusResolver(registryUri: String) extends CorpusResolver {
 }
 
 object HttpCorpusResolver {
-  def apply() = new HttpCorpusResolver()
+  def apply(): HttpCorpusResolver = new HttpCorpusResolver()
 }
