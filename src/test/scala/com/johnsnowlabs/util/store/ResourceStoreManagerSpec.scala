@@ -3,7 +3,7 @@ package com.johnsnowlabs.util.store
 import java.io.{File, FileInputStream, FileReader}
 import java.nio.file.{Files, Paths}
 
-import com.johnsnowlabs.util.AnnotatorCorpus
+import com.johnsnowlabs.util.{AnnotatorCorpus, AnnotatorOnlineModel}
 import com.johnsnowlabs.util.resolvers.commons.SemVer
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 import org.apache.commons.io.FileUtils
@@ -23,8 +23,14 @@ class ResourceStoreManagerSpec extends FlatSpec with Matchers with BeforeAndAfte
     val annotatorCorpus = AnnotatorCorpus("corpus-name", "pos", SemVer("1.0.0"))
     val corpusFile = Http("https://s3.amazonaws.com/auxdata.johnsnowlabs.com/spark-nlp-resources/corpus/spell/words.txt").asBytes.body
   }
+
+  def fixtureAnnotatorOnlineModel() = new {
+    val annotatorModel = AnnotatorOnlineModel("pos-test", "pos", SemVer("0.0.1"))
+    val modelFile = Http("https://s3.amazonaws.com/auxdata.johnsnowlabs.com/spark-nlp-resources/model/pos/pos-model-saved.tar.gz").asBytes.body
+  }
+
   override def afterEach(): Unit = {
-    FileUtils.deleteDirectory(new File(tempStoreFolderPath))
+//    FileUtils.deleteDirectory(new File(tempStoreFolderPath))
   }
 
   "A ResourceStoreManager" should "have a store folder" in {
@@ -70,5 +76,13 @@ class ResourceStoreManagerSpec extends FlatSpec with Matchers with BeforeAndAfte
     jsonAnnotatorCorpus.corpusName shouldBe f.annotatorCorpus.name
     jsonAnnotatorCorpus.corpusType shouldBe f.annotatorCorpus.corpusType
     jsonAnnotatorCorpus.corpusVersion shouldBe f.annotatorCorpus.version.toString
+  }
+
+  it should "save an AnnotatorOnlineModel in the store" in {
+    val f = fixtureAnnotatorOnlineModel()
+    val res = ResourceStoreManager.createOrReplaceResource(f.annotatorModel, f.modelFile)
+    val f1 = new File(res.path)
+    f1.exists() shouldBe true
+    f1.isDirectory shouldBe true
   }
 }

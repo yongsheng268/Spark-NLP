@@ -10,7 +10,7 @@ case class ModelRegistry(modelList: Seq[ModelRegistryResource]) {
   def hasModel(model: ModelRegistryResource): Boolean = {
     modelList.exists {
       case ModelRegistryResource(modelName, modelType, modelVersion, _, sparkVersion, sparkNlpVersion, lang) =>
-        model.modelName == modelName && model.modelType == modelType && model.modelVersion == modelVersion && model.sparkVersion == sparkVersion && model.sparkNlpVersion == sparkNlpVersion && model.lang == lang
+        model.modelName == modelName && model.modelType == modelType && model.modelVersion == modelVersion && model.sparkVersion.major == sparkVersion.major && model.sparkNlpVersion == sparkNlpVersion && model.lang == lang
     }
   }
 
@@ -21,7 +21,7 @@ case class ModelRegistry(modelList: Seq[ModelRegistryResource]) {
   def findModel(model: ModelRegistryResource): ModelRegistryResource = {
     modelList.find {
       case ModelRegistryResource(modelName, modelType, modelVersion, _, sparkVersion, sparkNlpVersion, lang) =>
-        model.modelName == modelName && model.modelType == modelType && model.modelVersion == modelVersion && model.sparkVersion == sparkVersion && model.sparkNlpVersion == sparkNlpVersion && model.lang == lang
+        model.modelName == modelName && model.modelType == modelType && model.modelVersion == modelVersion && model.sparkVersion.major == sparkVersion.major && model.sparkNlpVersion == sparkNlpVersion && model.lang == lang
     }.get
   }
 

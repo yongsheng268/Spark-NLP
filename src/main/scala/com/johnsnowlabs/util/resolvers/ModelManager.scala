@@ -2,7 +2,7 @@ package com.johnsnowlabs.util.resolvers
 
 import com.johnsnowlabs.util.AnnotatorOnlineModel
 import com.johnsnowlabs.util.resolvers.manager.BaseManager
-import com.johnsnowlabs.util.resolvers.model.common.{ModelRegistry}
+import com.johnsnowlabs.util.resolvers.model.common.ModelRegistry
 import com.johnsnowlabs.util.resolvers.model.{HttpModelResolver, ModelResolver}
 import com.johnsnowlabs.util.store.ResourceStoreManager
 import com.johnsnowlabs.util.store.common.StoredResource

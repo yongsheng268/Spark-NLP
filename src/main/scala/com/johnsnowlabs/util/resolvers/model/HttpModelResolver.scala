@@ -38,7 +38,7 @@ class HttpModelResolver(registryUri: String) extends ModelResolver {
           modelType.modelType,
           SemVer(model.modelVersion),
           model.modelUri,
-          SemVer(model.sparkNlpVersion),
+          SemVer(model.sparkVersion),
           SemVer(model.sparkNlpVersion),
           model.lang
         )

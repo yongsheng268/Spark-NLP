@@ -8,6 +8,7 @@ import com.johnsnowlabs.util.store.common.StoredResource
 import org.apache.commons.io.FileUtils
 import org.json4s.DefaultFormats
 import org.json4s.jackson.Serialization.write
+import com.johnsnowlabs.util.compress.unzipUntarInplace
 
 object ResourceStoreManager {
   implicit val formats: DefaultFormats = DefaultFormats
@@ -93,6 +94,7 @@ object ResourceStoreManager {
       FileUtils.deleteDirectory(new File(folderNameForResource))
       Files.createDirectory(Paths.get(folderNameForResource))
       this.saveResourceContent(Paths.get(folderNameForResource, rawModelFile).toString, content)
+      unzipUntarInplace(Paths.get(folderNameForResource, rawModelFile).toString)
       this.saveResourceMetadata(Paths.get(folderNameForResource, modelMetadataFile).toString, model)
     } catch {
       case e: Throwable => e.printStackTrace()
