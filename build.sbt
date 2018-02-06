@@ -88,7 +88,8 @@ lazy val utilDependencies = Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.apache.commons" % "commons-compress" % "1.15",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
-  "org.rauschig" % "jarchivelib" % "0.7.1"
+  "org.rauschig" % "jarchivelib" % "0.7.1",
+  "com.github.seratch" %% "awscala" % "0.6.+"
 )
 
 lazy val root = (project in file("."))
