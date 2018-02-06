@@ -26,4 +26,8 @@ object AnnotatorOnlineModel {
   def apply(name: String, modelType: String, ver: SemVer): AnnotatorOnlineModel = {
     new AnnotatorOnlineModel(name, modelType, ver)
   }
+
+  def apply(name: String, modelType: String, ver: String): AnnotatorOnlineModel = {
+    new AnnotatorOnlineModel(name, modelType, SemVer(ver))
+  }
 }

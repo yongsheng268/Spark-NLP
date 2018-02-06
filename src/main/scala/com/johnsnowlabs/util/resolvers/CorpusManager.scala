@@ -21,6 +21,9 @@ object CorpusManager extends BaseManager {
   def getResolver: CorpusResolver = resolvers(resolverName)
 
 
+  def retrieve(name: String, corpusType: String, ver: String): DownloadedResource[AnnotatorCorpus] =
+    retrieve(AnnotatorCorpus(name, corpusType, ver))
+
   def retrieve(corpus: AnnotatorCorpus): DownloadedResource[AnnotatorCorpus] = {
     if (this.isCorpusCached(corpus)) {
       this.retrieveFromCache(corpus)

@@ -13,6 +13,9 @@ import com.johnsnowlabs.util.compress.unzipUntarInplace
 object ResourceStoreManager {
   implicit val formats: DefaultFormats = DefaultFormats
 
+  val corpusStoreDirName = "corpus"
+  val modelStoreDirName = "model"
+
   val rawCorpusFile: String = "corpus"
   val corpusMetadataFile: String = "metadata"
 
@@ -25,8 +28,13 @@ object ResourceStoreManager {
   case class JsonAnnotatorModel(modelName: String, modelType: String, modelVersion: String, sparkVersion: String, sparkNlpVersion: String, lang: String)
 
   def getStoreFolderPath: String = _storeFolderPath
+  def getCorpusStorePath: String = Paths.get(getStoreFolderPath, corpusStoreDirName).toAbsolutePath.toString
+  def getModelStorePath: String = Paths.get(getStoreFolderPath, modelStoreDirName).toAbsolutePath.toString
 
-  def setStoreFolderPath(path: String): Unit = { _storeFolderPath = path }
+  def setStoreFolderPath(path: String): Unit = {
+    _storeFolderPath = path
+    this.initialSetup()
+  }
 
   def createStoreFolder(): Unit = {
     try {
@@ -35,10 +43,27 @@ object ResourceStoreManager {
       case _: FileAlreadyExistsException =>
       case e: Throwable => e.printStackTrace()
     }
+    try {
+      Files.createDirectory(Paths.get(this.getCorpusStorePath))
+    } catch {
+      case _: FileAlreadyExistsException =>
+      case e: Throwable => e.printStackTrace()
+    }
+    try {
+      Files.createDirectory(Paths.get(this.getModelStorePath))
+    } catch {
+      case _: FileAlreadyExistsException =>
+      case e: Throwable => e.printStackTrace()
+    }
   }
 
   def initialSetup(): Unit = {
-    createStoreFolder()
+    this.createStoreFolder()
+    this.loadStore()
+  }
+
+  def loadStore(): Unit = {
+
   }
 
   def createOrReplaceResource(corpus: AnnotatorCorpus, content: Array[Byte]): StoredResource[AnnotatorCorpus] = {
@@ -61,10 +86,10 @@ object ResourceStoreManager {
   }
 
   def folderNameForResource(corpus: AnnotatorCorpus): String =
-    Paths.get(this.getStoreFolderPath, corpus.stringId).toAbsolutePath.toString
+    Paths.get(this.getCorpusStorePath, corpus.stringId).toAbsolutePath.toString
 
   def folderNameForResource(model: AnnotatorOnlineModel): String =
-    Paths.get(this.getStoreFolderPath, model.stringId).toAbsolutePath.toString
+    Paths.get(this.getModelStorePath, model.stringId).toAbsolutePath.toString
 
   def saveResourceContent(str: String, bytes: Array[Byte]): Unit = {
     val outStream = new FileOutputStream(str)

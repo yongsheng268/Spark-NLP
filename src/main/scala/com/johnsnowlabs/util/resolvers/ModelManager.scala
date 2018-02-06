@@ -21,6 +21,9 @@ object ModelManager extends BaseManager {
   def getResolver: ModelResolver = resolvers(resolverName)
 
 
+  def retrieve(modelName: String, modelType: String, modelVersion: String): DownloadedResource[AnnotatorOnlineModel] =
+    retrieve(AnnotatorOnlineModel(modelName, modelType, modelVersion))
+
   def retrieve(model: AnnotatorOnlineModel): DownloadedResource[AnnotatorOnlineModel] = {
     if (this.isModelCached(model)) {
       this.retrieveFromCache(model)

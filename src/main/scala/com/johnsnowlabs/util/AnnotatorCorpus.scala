@@ -23,4 +23,7 @@ object AnnotatorCorpus {
     new AnnotatorCorpus(name, corpusType, ver)
 
   def apply(): AnnotatorCorpus = { new AnnotatorCorpus() }
+
+  def apply(name: String, corpusType: String, ver: String): AnnotatorCorpus =
+    new AnnotatorCorpus(name, corpusType, SemVer(ver))
 }
