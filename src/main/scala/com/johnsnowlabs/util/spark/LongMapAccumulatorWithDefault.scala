@@ -52,6 +52,8 @@ class TupleKeyDoubleMapAccumulatorWithDefault(defaultMap: MMap[(String, String),
 
   override def add(v: ((String, String), Long)): Unit = mmap(v._1) += v._2
 
+  def updateMany(v: MMap[(String, String), Long]): Unit = v ++ mmap
+
   def update(k: (String, String), v: Long): Unit =  mmap(k) = v
 
   override def value: Map[(String, String), Long] = mmap.toMap.withDefaultValue(defaultValue)

@@ -1,5 +1,5 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
-  /*
+
 import com.johnsnowlabs.nlp.annotators.common.{IndexedTaggedWord, TaggedSentence}
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
@@ -10,7 +10,7 @@ import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, SparkSession}
-import org.apache.spark.util.{AccumulatorV2, CollectionAccumulator}
+import org.apache.spark.util.{AccumulatorV2, CollectionAccumulator, LongAccumulator}
 
 import scala.collection.mutable.{Map => MMap}
 import scala.util.Random
@@ -118,14 +118,17 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
     val classes = taggedSentences.flatMap(_.tags).distinct.collect
     val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
     val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
+    val iteration = new LongAccumulator()
     dataset.sparkSession.sparkContext.register(weightCollection)
     dataset.sparkSession.sparkContext.register(timestampsCollection)
+    dataset.sparkSession.sparkContext.register(iteration)
     val initialModel = new AveragedPerceptron(
       dataset.sparkSession,
       classes,
       taggedWordBook,
       weightCollection,
-      timestampsCollection
+      timestampsCollection,
+      iteration
     )
     /**
       * Iterates for training
@@ -143,7 +146,7 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
         var prev = START(0)
         var prev2 = START(1)
         val context = START ++: taggedSentence.words.map(w => normalized(w)) ++: END
-        Benchmark.time("Time for sentence words") {taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
+        taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
             val guess = taggedWordBook.value.getOrElse(word.toLowerCase,{
               /**
                 * if word is not found, collect its features which are used for prediction and predict
@@ -164,7 +167,7 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
               */
             prev2 = prev
             prev = guess
-        }}
+        }
       }
       iteratedModel
     }}}}
@@ -173,5 +176,3 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
     new PerceptronModel().setModel(trainedModel)
   }
 }
-
-*/

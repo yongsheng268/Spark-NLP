@@ -10,6 +10,7 @@ import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
 import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
 import org.apache.spark.sql.Dataset
+import org.apache.spark.util.LongAccumulator
 
 import scala.collection.mutable.{Map => MMap}
 import scala.util.Random
@@ -116,16 +117,19 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     val taggedWordBook = dataset.sparkSession.sparkContext.broadcast(buildTagBook(taggedSentences))
     /** finds all distinct tags and stores them */
     val classes = taggedSentences.flatMap(_.tags).distinct
-    //val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
-    //val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
-    //dataset.sparkSession.sparkContext.register(weightCollection)
-    //dataset.sparkSession.sparkContext.register(timestampsCollection)
+    val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
+    val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
+    val iteration = new LongAccumulator()
+    dataset.sparkSession.sparkContext.register(weightCollection)
+    dataset.sparkSession.sparkContext.register(timestampsCollection)
+    dataset.sparkSession.sparkContext.register(iteration)
     val initialModel = new AveragedPerceptron(
       dataset.sparkSession,
       classes,
       taggedWordBook,
-      MMap(),
-      MMap().withDefaultValue(0)
+      weightCollection,
+      timestampsCollection,
+      iteration
     )
     /**
       * Iterates for training
@@ -143,7 +147,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
         var prev = START(0)
         var prev2 = START(1)
         val context = START ++: taggedSentence.words.map(w => normalized(w)) ++: END
-        Benchmark.time("Time for all words") {taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
+        taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
             val guess = taggedWordBook.value.getOrElse(word.toLowerCase,{
                 /**
                   * if word is not found, collect its features which are used for prediction and predict
@@ -164,7 +168,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
             */
           prev2 = prev
           prev = guess
-        }}
+        }
         model
       }
     }}}}
