@@ -174,7 +174,9 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     }}}}
     trainedModel.averageWeights()
     println(s"WEIGHT: ${weightCollection.value.mapValues(_.mkString(",")).mkString(",")}")
+    println(s"WEIGHT SIZE: ${weightCollection.value.size} INNER SIZE: ${weightCollection.value.values.size}")
     println(s"TIMESTMAP: ${timestampsCollection.value.mkString(",")}")
+    println(s"TIMESTMAP SIZE: ${timestampsCollection.value.size}")
     println(s"ITERATION: ${iteration.value}")
     logger.debug("TRAINING: Finished all iterations")
     new PerceptronModel().setModel(trainedModel)
