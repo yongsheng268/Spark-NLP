@@ -91,39 +91,41 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     /**
       * Generates TagBook, which holds all the word to tags mapping that are not ambiguous
       */
-    val taggedSentences: Array[TaggedSentence] = if (get(posCol).isDefined) {
-      import ResourceHelper.spark.implicits._
-      val tokenColumn = dataset.schema.fields
-        .find(f => f.metadata.contains("annotatorType") && f.metadata.getString("annotatorType") == AnnotatorType.TOKEN)
-        .map(_.name).get
-      dataset.select(tokenColumn, $(posCol))
-        .as[(Array[Annotation], Array[String])]
-        .map{
-          case (annotations, posTags) =>
-            lazy val strTokens = annotations.map(_.result).mkString("#")
-            lazy val strPosTags = posTags.mkString("#")
-            require(annotations.length == posTags.length, s"Cannot train from $posCol since there" +
-              s" is a row with different amount of tags and tokens:\n$strTokens\n$strPosTags")
-            TaggedSentence(annotations.zip(posTags)
-              .map{case (annotation, posTag) => IndexedTaggedWord(annotation.result, posTag, annotation.begin, annotation.end)}
-            )
-        }.collect
-    } else {
-      ResourceHelper.parseTupleSentences($(corpus))
+    val taggedSentences: Array[TaggedSentence] = Benchmark.time("Preprocessing time") {
+      if (get(posCol).isDefined) {
+        import ResourceHelper.spark.implicits._
+        val tokenColumn = dataset.schema.fields
+          .find(f => f.metadata.contains("annotatorType") && f.metadata.getString("annotatorType") == AnnotatorType.TOKEN)
+          .map(_.name).get
+        dataset.select(tokenColumn, $(posCol))
+          .as[(Array[Annotation], Array[String])]
+          .map {
+            case (annotations, posTags) =>
+              lazy val strTokens = annotations.map(_.result).mkString("#")
+              lazy val strPosTags = posTags.mkString("#")
+              require(annotations.length == posTags.length, s"Cannot train from $posCol since there" +
+                s" is a row with different amount of tags and tokens:\n$strTokens\n$strPosTags")
+              TaggedSentence(annotations.zip(posTags)
+                .map { case (annotation, posTag) => IndexedTaggedWord(annotation.result, posTag, annotation.begin, annotation.end) }
+              )
+          }.collect
+      } else {
+        ResourceHelper.parseTupleSentences($(corpus))
+      }
     }
     val taggedWordBook = dataset.sparkSession.sparkContext.broadcast(buildTagBook(taggedSentences))
     /** finds all distinct tags and stores them */
     val classes = taggedSentences.flatMap(_.tags).distinct
-    val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
-    val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
-    dataset.sparkSession.sparkContext.register(weightCollection)
-    dataset.sparkSession.sparkContext.register(timestampsCollection)
+    //val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
+    //val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
+    //dataset.sparkSession.sparkContext.register(weightCollection)
+    //dataset.sparkSession.sparkContext.register(timestampsCollection)
     val initialModel = new AveragedPerceptron(
       dataset.sparkSession,
       classes,
       taggedWordBook,
-      weightCollection,
-      timestampsCollection
+      MMap(),
+      MMap().withDefaultValue(0)
     )
     /**
       * Iterates for training
