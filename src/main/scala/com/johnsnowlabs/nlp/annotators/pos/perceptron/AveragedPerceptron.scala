@@ -1,7 +1,8 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
 
-import com.johnsnowlabs.nlp.annotators.common.TaggedWord
-import com.johnsnowlabs.nlp.annotators.param.{SerializedAnnotatorComponent, WritableAnnotatorComponent}
+import com.johnsnowlabs.util.spark.{DoubleMapAccumulatorWithDefault, TupleKeyDoubleMapAccumulatorWithDefault}
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.mutable.{Map => MMap}
 
@@ -14,21 +15,23 @@ import scala.collection.mutable.{Map => MMap}
   * @param tags Holds all unique tags based on training
   * @param taggedWordBook Contains non ambiguous words and their tags
   * @param featuresWeight Contains prediction information based on context frequencies
+  * @param timestamps Contains timestamp broadcast
   * @param lastIteration Contains information on how many iterations have run for weighting
   */
 class AveragedPerceptron(
+                          spark: SparkSession,
                           tags: Array[String],
-                          taggedWordBook: Map[String, String],
-                          featuresWeight: MMap[String, MMap[String, Double]],
+                          taggedWordBook: Broadcast[Map[String, String]],
+                          featuresWeight: StringMapStringDoubleAccumulatorWithDVMutable,
+                          timestamps: TupleKeyDoubleMapAccumulatorWithDefault,
                           lastIteration: Int = 0
-                        ) extends Serializable {
+                         ) extends Serializable {
 
   /**How many training iterations ran*/
   private var updateIteration: Int = lastIteration
   /**totals contains scores for words and their possible tags*/
-  private val totals: MMap[(String, String), Double] = MMap().withDefaultValue(0.0)
-  /**weighting parameter for words and their tags based on how many times passed through*/
-  private val timestamps: MMap[(String, String), Double] = MMap().withDefaultValue(0.0)
+  private val totals = new StringTupleDoubleAccumulatorWithDV()
+  spark.sparkContext.register(totals)
 
   def predict(features: List[(String, Int)]): String = {
     /**
@@ -39,15 +42,15 @@ class AveragedPerceptron(
       *
       */
     val scoresByTag = features
-      .filter{case (feature, value) => featuresWeight.contains(feature) && value != 0}
+      .filter{case (feature, value) => featuresWeight.value.contains(feature) && value != 0}
       .map{case (feature, value ) =>
-        featuresWeight(feature)
+        featuresWeight.value(feature)
           .map{ case (tag, weight) =>
             (tag, value * weight)
-        }
+          }
       }.aggregate(MMap[String, Double]())(
-        (tagsScores, tagScore) => tagScore ++ tagsScores.map{case(tag, score) => (tag, tagScore.getOrElse(tag, 0.0) + score)},
-        (pTagScore, cTagScore) => pTagScore.map{case (tag, score) => (tag, cTagScore.getOrElse(tag, 0.0) + score)}
+      (tagsScores, tagScore) => tagScore ++ tagsScores.map{case(tag, score) => (tag, tagScore.getOrElse(tag, 0.0) + score)},
+      (pTagScore, cTagScore) => pTagScore.map{case (tag, score) => (tag, cTagScore.getOrElse(tag, 0.0) + score)}
     )
     /**
       * ToDo: Watch it here. Because of missing training corpus, default values are made to make tests pass
@@ -61,20 +64,20 @@ class AveragedPerceptron(
     * once a model was trained, average its weights more in the first iterations
     */
   private[pos] def averageWeights(): Unit = {
-    featuresWeight.foreach { case (feature, weights) =>
-      featuresWeight.update(feature,
+    featuresWeight.value.foreach { case (feature, weights) =>
+      featuresWeight.value.update(feature,
         weights.map { case (tag, weight) =>
           val param = (feature, tag)
-          val total = totals(param) + ((updateIteration - timestamps(param)) * weight)
+          val total = totals.value(param) + ((updateIteration - timestamps.value(param)) * weight)
           (tag, total / updateIteration.toDouble)
         }
       )
     }
   }
   private[nlp] def getUpdateIterations: Int = updateIteration
-  private[nlp] def getTagBook: Map[String, String] = taggedWordBook
+  private[nlp] def getTagBook: Map[String, String] = taggedWordBook.value
   private[nlp] def getTags: Array[String] = tags
-  def getWeights: Map[String, Map[String, Double]] = featuresWeight.mapValues(_.toMap).toMap
+  def getWeights: Map[String, Map[String, Double]] = featuresWeight.value.mapValues(_.toMap).toMap
   /**
     * This is model learning tweaking during training, in-place
     * Uses mutable collections since this runs per word, not per iteration
@@ -88,12 +91,12 @@ class AveragedPerceptron(
       /**
         * update totals and timestamps
         */
-      totals(param) += ((updateIteration - timestamps(param)) * weight)
-      timestamps(param) = updateIteration
+      totals.add(param, (updateIteration - timestamps.value(param)) * weight)
+      timestamps.update(param, updateIteration)
       /**
         * update weights
         */
-      featuresWeight(feature)(tag) = weight + value
+      featuresWeight.innerSet((feature, tag), weight + value)
     }
     updateIteration += 1
     /**
@@ -102,7 +105,7 @@ class AveragedPerceptron(
       */
     if (truth != guess) {
       features.foreach{case (feature, _) =>
-        val weights = featuresWeight.getOrElseUpdate(feature, MMap())
+        val weights = featuresWeight.value(feature)
         updateFeature(truth, feature, weights.getOrElse(truth, 0.0), 1.0)
         updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
       }

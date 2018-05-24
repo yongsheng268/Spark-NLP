@@ -1,15 +1,16 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
 
-import com.johnsnowlabs.nlp.{Annotation, AnnotatorApproach, AnnotatorType}
 import com.johnsnowlabs.nlp.annotators.common.{IndexedTaggedWord, TaggedSentence}
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
+import com.johnsnowlabs.nlp.{Annotation, AnnotatorApproach, AnnotatorType}
 import com.johnsnowlabs.util.Benchmark
-import com.johnsnowlabs.util.spark.TupleKeyDoubleMapAccumulatorWithDefault
+import com.johnsnowlabs.util.spark.{DoubleMapAccumulatorWithDefault, LongMapAccumulatorWithDefault, TupleKeyDoubleMapAccumulatorWithDefault}
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
-import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
-import org.apache.spark.sql.Dataset
+import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.util.{AccumulatorV2, CollectionAccumulator}
 
 import scala.collection.mutable.{Map => MMap}
 import scala.util.Random
@@ -19,7 +20,7 @@ import scala.util.Random
   * Inspired on Averaged Perceptron by Matthew Honnibal
   * https://explosion.ai/blog/part-of-speech-pos-tagger-in-python
   */
-class PerceptronApproach(override val uid: String) extends AnnotatorApproach[PerceptronModel] with PerceptronUtils {
+class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[PerceptronModel] with PerceptronUtils {
 
   import com.johnsnowlabs.nlp.AnnotatorType._
 
@@ -61,25 +62,26 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     * @param ambiguityThreshold How much percentage of total amount of words are covered to be marked as frequent
     */
   private def buildTagBook(
-                            taggedSentences: Array[TaggedSentence],
+                            taggedSentences: Dataset[TaggedSentence],
                             frequencyThreshold: Int = 20,
                             ambiguityThreshold: Double = 0.97
                           ): Map[String, String] = {
-
+    import ResourceHelper.spark.implicits._
     val tagFrequenciesByWord = taggedSentences
       .flatMap(_.taggedWords)
-      .groupBy(_.word.toLowerCase)
-      .mapValues(_.groupBy(_.tag).mapValues(_.length))
+      .groupByKey(tw => tw.word.toLowerCase)
+      .mapGroups{case (lw, tw) => (lw, tw.toSeq.groupBy(_.tag).mapValues(_.length))}
+      .filter { lwtw =>
+        val (_, mode) = lwtw._2.maxBy(t => t._2)
+        val n = lwtw._2.values.sum
+        n >= frequencyThreshold && (mode / n.toDouble) >= ambiguityThreshold
+      }
 
-    tagFrequenciesByWord.filter { case (_, tagFrequencies) =>
-      val (_, mode) = tagFrequencies.maxBy(_._2)
-      val n = tagFrequencies.values.sum
-      n >= frequencyThreshold && (mode / n.toDouble) >= ambiguityThreshold
-    }.map { case (word, tagFrequencies) =>
+    tagFrequenciesByWord.map { case (word, tagFrequencies) =>
       val (tag, _) = tagFrequencies.maxBy(_._2)
       logger.debug(s"TRAINING: Ambiguity discarded on: << $word >> set to: << $tag >>")
       (word, tag)
-    }
+    }.collect.toMap
   }
 
   /**
@@ -91,8 +93,8 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     /**
       * Generates TagBook, which holds all the word to tags mapping that are not ambiguous
       */
-    val taggedSentences: Array[TaggedSentence] = if (get(posCol).isDefined) {
-      import ResourceHelper.spark.implicits._
+    import ResourceHelper.spark.implicits._
+    val taggedSentences: Dataset[TaggedSentence] = if (get(posCol).isDefined) {
       val tokenColumn = dataset.schema.fields
         .find(f => f.metadata.contains("annotatorType") && f.metadata.getString("annotatorType") == AnnotatorType.TOKEN)
         .map(_.name).get
@@ -107,13 +109,13 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
             TaggedSentence(annotations.zip(posTags)
               .map{case (annotation, posTag) => IndexedTaggedWord(annotation.result, posTag, annotation.begin, annotation.end)}
             )
-        }.collect
+        }
     } else {
-      ResourceHelper.parseTupleSentences($(corpus))
+      ResourceHelper.parseTupleSentencesDS($(corpus))
     }
     val taggedWordBook = dataset.sparkSession.sparkContext.broadcast(buildTagBook(taggedSentences))
     /** finds all distinct tags and stores them */
-    val classes = taggedSentences.flatMap(_.tags).distinct
+    val classes = taggedSentences.flatMap(_.tags).distinct.collect
     val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
     val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
     dataset.sparkSession.sparkContext.register(weightCollection)
@@ -128,12 +130,12 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     /**
       * Iterates for training
       */
-    val trainedModel = Benchmark.time("time for iterations") {(1 to $(nIterations)).foldLeft(initialModel) { (iteratedModel, iteration) => {
+    val trainedModel = Benchmark.time("Time for iterations") { (1 to $(nIterations)).foldLeft(initialModel) { (iteratedModel, iteration) => {
       logger.debug(s"TRAINING: Iteration n: $iteration")
       /**
         * In a shuffled sentences list, try to find tag of the word, hold the correct answer
         */
-      Benchmark.time("Time for iteration") { Random.shuffle(taggedSentences.toList).foldLeft(iteratedModel) { (model, taggedSentence) =>
+      Benchmark.time("Time for iteration") { taggedSentences.foreach{taggedSentence =>
 
         /**
           * Defines a sentence context, with room to for look back
@@ -141,30 +143,30 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
         var prev = START(0)
         var prev2 = START(1)
         val context = START ++: taggedSentence.words.map(w => normalized(w)) ++: END
-        Benchmark.time("Time for all words") {taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
+        Benchmark.time("Time for sentence words") {taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
             val guess = taggedWordBook.value.getOrElse(word.toLowerCase,{
-                /**
-                  * if word is not found, collect its features which are used for prediction and predict
-                  */
-                val features = getFeatures(i, word, context, prev, prev2)
-                val guess = model.predict(features)
-                /**
-                  * Update the model based on the prediction results
-                  */
-                model.update(taggedSentence.tags(i), guess, features.toMap)
-                /**
-                  * return the guess
-                  */
-                guess
-              })
-          /**
-            * shift the context
-            */
-          prev2 = prev
-          prev = guess
+              /**
+                * if word is not found, collect its features which are used for prediction and predict
+                */
+              val features = getFeatures(i, word, context, prev, prev2)
+              val guess = iteratedModel.predict(features)
+              /**
+                * Update the model based on the prediction results
+                */
+              iteratedModel.update(taggedSentence.tags(i), guess, features.toMap)
+              /**
+                * return the guess
+                */
+              guess
+            })
+            /**
+              * shift the context
+              */
+            prev2 = prev
+            prev = guess
         }}
-        model
       }
+      iteratedModel
     }}}}
     trainedModel.averageWeights()
     logger.debug("TRAINING: Finished all iterations")
@@ -172,4 +174,3 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
   }
 }
 
-object PerceptronApproach extends DefaultParamsReadable[PerceptronApproach]

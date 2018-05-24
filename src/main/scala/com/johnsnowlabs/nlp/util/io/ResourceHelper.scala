@@ -283,6 +283,28 @@ object ResourceHelper {
     }
   }
 
+  def parseTupleSentencesDS(
+                           er: ExternalResource
+                         ): Dataset[TaggedSentence] = {
+    er.readAs match {
+      case SPARK_DATASET =>
+        import spark.implicits._
+        val dataset = spark.read.options(er.options).format(er.options("format")).load(er.path)
+        val result = dataset.as[String].filter(_.nonEmpty).map(line => {
+          line.split("\\s+").filter(kv => {
+            val s = kv.split(er.options("delimiter").head)
+            s.length == 2 && s(0).nonEmpty && s(1).nonEmpty
+          }).map(kv => {
+            val p = kv.split(er.options("delimiter").head)
+            TaggedWord(p(0), p(1))
+          })
+        })
+        result.map(TaggedSentence(_))
+      case _ =>
+        throw new Exception("Unsupported readAs")
+    }
+  }
+
   /**
     * For multiple values per keys, this optimizer flattens all values for keys to have constant access
     */

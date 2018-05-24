@@ -3,7 +3,7 @@ package com.johnsnowlabs.nlp.annotators.sda.vivekn
 import com.johnsnowlabs.nlp.{Annotation, AnnotatorApproach, AnnotatorType}
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
-import com.johnsnowlabs.util.spark.MapAccumulator
+import com.johnsnowlabs.util.spark.LongMapAccumulatorWithDefault
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
 import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
@@ -69,8 +69,8 @@ class ViveknSentimentApproach(override val uid: String)
     val (positive, negative): (Map[String, Long], Map[String, Long]) = {
       if (get(sentimentCol).isDefined) {
         import ResourceHelper.spark.implicits._
-        val positiveDS = new MapAccumulator()
-        val negativeDS = new MapAccumulator()
+        val positiveDS = new LongMapAccumulatorWithDefault()
+        val negativeDS = new LongMapAccumulatorWithDefault()
         dataset.sparkSession.sparkContext.register(positiveDS)
         dataset.sparkSession.sparkContext.register(negativeDS)
         val prefix = "not_"
