@@ -5,7 +5,7 @@ import com.johnsnowlabs.nlp.annotators.common.{IndexedTaggedWord, TaggedSentence
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
 import com.johnsnowlabs.util.Benchmark
-import com.johnsnowlabs.util.spark.TupleKeyDoubleMapAccumulatorWithDefault
+import com.johnsnowlabs.util.spark.TupleKeyLongMapAccumulatorWithDefault
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
 import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
@@ -118,7 +118,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     /** finds all distinct tags and stores them */
     val classes = taggedSentences.flatMap(_.tags).distinct
     val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
-    val timestampsCollection = new TupleKeyDoubleMapAccumulatorWithDefault()
+    val timestampsCollection = new TupleKeyLongMapAccumulatorWithDefault()
     val iteration = new LongAccumulator()
     dataset.sparkSession.sparkContext.register(weightCollection)
     dataset.sparkSession.sparkContext.register(timestampsCollection)

@@ -43,7 +43,7 @@ class DoubleMapAccumulatorWithDefault(defaultMap: MMap[String, Double] = MMap.em
     other.value.foreach{case (k, v) => mmap(k) += v}
 }
 
-class TupleKeyDoubleMapAccumulatorWithDefault(defaultMap: MMap[(String, String), Long] = MMap.empty[(String, String), Long], defaultValue: Long = 0)
+class TupleKeyLongMapAccumulatorWithDefault(defaultMap: MMap[(String, String), Long] = MMap.empty[(String, String), Long], defaultValue: Long = 0)
   extends AccumulatorV2[((String, String), Long), Map[(String, String), Long]] {
 
   private val mmap = defaultMap.withDefaultValue(defaultValue)
@@ -63,7 +63,7 @@ class TupleKeyDoubleMapAccumulatorWithDefault(defaultMap: MMap[(String, String),
   override def value: Map[(String, String), Long] = mmap.toMap.withDefaultValue(defaultValue)
 
   override def copy(): AccumulatorV2[((String, String), Long), Map[(String, String), Long]] =
-    new TupleKeyDoubleMapAccumulatorWithDefault(MMap[(String, String), Long](value.toSeq:_*), defaultValue)
+    new TupleKeyLongMapAccumulatorWithDefault(MMap[(String, String), Long](value.toSeq:_*), defaultValue)
 
   override def isZero: Boolean = mmap.isEmpty
 

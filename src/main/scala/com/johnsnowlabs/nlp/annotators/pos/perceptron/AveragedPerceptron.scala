@@ -1,6 +1,6 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
 
-import com.johnsnowlabs.util.spark.{DoubleMapAccumulatorWithDefault, TupleKeyDoubleMapAccumulatorWithDefault}
+import com.johnsnowlabs.util.spark.{DoubleMapAccumulatorWithDefault, TupleKeyLongMapAccumulatorWithDefault}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.LongAccumulator
@@ -24,15 +24,14 @@ class AveragedPerceptron(
                           tags: Array[String],
                           taggedWordBook: Broadcast[Map[String, String]],
                           featuresWeight: StringMapStringDoubleAccumulatorWithDVMutable,
-                          timestamps: TupleKeyDoubleMapAccumulatorWithDefault,
+                          timestamps: TupleKeyLongMapAccumulatorWithDefault,
                           updateIteration: LongAccumulator
                          ) extends Serializable {
 
   /**How many training iterations ran*/
   /**totals contains scores for words and their possible tags*/
-  //private val totals = new StringTupleDoubleAccumulatorWithDV()
-  //spark.sparkContext.register(totals)
-  private val totals = MMap.empty[(String, String), Double].withDefaultValue(0.0)
+  private val totals = new StringTupleDoubleAccumulatorWithDV()
+  spark.sparkContext.register(totals)
 
   def predict(features: List[(String, Int)]): String = {
     /**
@@ -69,7 +68,7 @@ class AveragedPerceptron(
       featuresWeight.update(feature,
         weights.map { case (tag, weight) =>
           val param = (feature, tag)
-          val total = totals(param) + ((updateIteration.value - timestamps.value(param)) * weight)
+          val total = totals.value(param) + ((updateIteration.value - timestamps.value(param)) * weight)
           (tag, total / updateIteration.value.toDouble)
         }
       )
@@ -93,8 +92,7 @@ class AveragedPerceptron(
       /**
         * update totals and timestamps
         */
-      //totals.add(param, (updateIteration - timestamps(param)) * weight)
-      totals(param) += ((updateIteration.value - a.getOrElse(param, timestamps.value(param))) * weight)
+      totals.add(param, (updateIteration.value - a.getOrElse(param, timestamps.value(param))) * weight)
       a(param) = updateIteration.value
       /**
         * update weights
