@@ -66,7 +66,7 @@ class AveragedPerceptron(
     */
   private[pos] def averageWeights(): Unit = {
     featuresWeight.value.foreach { case (feature, weights) =>
-      featuresWeight.add(feature,
+      featuresWeight.update(feature,
         weights.map { case (tag, weight) =>
           val param = (feature, tag)
           val total = totals(param) + ((updateIteration.value - timestamps.value(param)) * weight)

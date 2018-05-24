@@ -52,7 +52,11 @@ class TupleKeyDoubleMapAccumulatorWithDefault(defaultMap: MMap[(String, String),
 
   override def add(v: ((String, String), Long)): Unit = mmap(v._1) += v._2
 
-  def updateMany(v: MMap[(String, String), Long]): Unit = v ++ mmap
+  def updateMany(v: MMap[(String, String), Long]): Unit = {
+    v.foreach{case (kk, vv) =>
+        mmap(kk) = vv
+    }
+  }
 
   def update(k: (String, String), v: Long): Unit =  mmap(k) = v
 

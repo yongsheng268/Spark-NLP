@@ -32,11 +32,18 @@ class StringMapStringDoubleAccumulatorWithDVMutable(defaultMap: MMap[String, MMa
   override def reset(): Unit = mmap.clear()
 
   override def add(v: (String, MMap[String, Double])): Unit = {
-    mmap(v._1).foreach{case (k, vv) => mmap(v._1)(k) += vv}
+    if (mmap.contains(v._1))
+      mmap(v._1).foreach{case (k, vv) => mmap(v._1)(k) += vv}
+    else
+      mmap(v._1) = mmap(v._1) ++ v._2
+  }
+
+  def update(v: (String, MMap[String, Double])): Unit = {
+    mmap(v._1) = v._2
   }
 
   def innerSet(k: (String, String), v: Double): Unit = {
-    mmap(k._1)(k._2) = v
+    mmap(k._1) = MMap(k._2 -> v)
   }
 
   override def value: MMap[String, MMap[String, Double]] = mmap
