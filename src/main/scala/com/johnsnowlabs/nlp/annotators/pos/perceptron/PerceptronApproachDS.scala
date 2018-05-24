@@ -1,5 +1,5 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
-
+  /*
 import com.johnsnowlabs.nlp.annotators.common.{IndexedTaggedWord, TaggedSentence}
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
@@ -175,4 +175,4 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
     logger.debug("TRAINING: Finished all iterations")
     new PerceptronModel().setModel(trainedModel)
   }
-}
+}*/

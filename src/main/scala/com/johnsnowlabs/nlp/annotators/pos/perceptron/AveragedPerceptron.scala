@@ -24,7 +24,7 @@ class AveragedPerceptron(
                           tags: Array[String],
                           taggedWordBook: Broadcast[Map[String, String]],
                           featuresWeight: StringMapStringDoubleAccumulatorWithDVMutable,
-                          timestamps: TupleKeyLongMapAccumulatorWithDefault,
+                          timestamps: MMap[(String, String), Long],
                           updateIteration: LongAccumulator
                          ) extends Serializable {
 
@@ -68,7 +68,7 @@ class AveragedPerceptron(
       featuresWeight.update(feature,
         weights.map { case (tag, weight) =>
           val param = (feature, tag)
-          val total = totals.value(param) + ((updateIteration.value - timestamps.value(param)) * weight)
+          val total = totals.value(param) + ((updateIteration.value - timestamps(param)) * weight)
           (tag, total / updateIteration.value.toDouble)
         }
       )
@@ -86,13 +86,13 @@ class AveragedPerceptron(
     * @return
     */
   def update(truth: String, guess: String, features: Map[String, Int]): Unit = {
-    val a = MMap(timestamps.value.toSeq:_*)
+    val a = MMap(timestamps.toSeq:_*)
     def updateFeature(tag: String, feature: String, weight: Double, value: Double) = {
       val param = (feature, tag)
       /**
         * update totals and timestamps
         */
-      totals.add(param, (updateIteration.value - a.getOrElse(param, timestamps.value(param))) * weight)
+      totals.add(param, (updateIteration.value - a.getOrElse(param, timestamps(param))) * weight)
       a(param) = updateIteration.value
       /**
         * update weights
@@ -111,6 +111,6 @@ class AveragedPerceptron(
         updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
       }
     }
-    timestamps.updateMany(a)
+    //timestamps.updateMany(a)
   }
 }

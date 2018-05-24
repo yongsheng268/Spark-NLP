@@ -118,17 +118,17 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     /** finds all distinct tags and stores them */
     val classes = taggedSentences.flatMap(_.tags).distinct
     val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
-    val timestampsCollection = new TupleKeyLongMapAccumulatorWithDefault()
+    //val timestampsCollection = new TupleKeyLongMapAccumulatorWithDefault()
     val iteration = new LongAccumulator()
     dataset.sparkSession.sparkContext.register(weightCollection)
-    dataset.sparkSession.sparkContext.register(timestampsCollection)
+    //dataset.sparkSession.sparkContext.register(timestampsCollection)
     dataset.sparkSession.sparkContext.register(iteration)
     val initialModel = new AveragedPerceptron(
       dataset.sparkSession,
       classes,
       taggedWordBook,
       weightCollection,
-      timestampsCollection,
+      MMap.empty[(String, String), Long].withDefaultValue(0),
       iteration
     )
     /**
@@ -175,8 +175,8 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     trainedModel.averageWeights()
     println(s"WEIGHT: ${weightCollection.value.mapValues(_.mkString(",")).mkString(",")}")
     println(s"WEIGHT SIZE: ${weightCollection.value.size} INNER SIZE: ${weightCollection.value.values.size}")
-    println(s"TIMESTMAP: ${timestampsCollection.value.mkString(",")}")
-    println(s"TIMESTMAP SIZE: ${timestampsCollection.value.size}")
+    //println(s"TIMESTMAP: ${timestampsCollection.value.mkString(",")}")
+    //println(s"TIMESTMAP SIZE: ${timestampsCollection.value.size}")
     println(s"ITERATION: ${iteration.value}")
     logger.debug("TRAINING: Finished all iterations")
     new PerceptronModel().setModel(trainedModel)
