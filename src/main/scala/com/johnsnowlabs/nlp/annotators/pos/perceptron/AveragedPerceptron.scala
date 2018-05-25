@@ -98,12 +98,10 @@ class AveragedPerceptron(
         * update weights
         */
       featuresWeight.innerSet((feature, tag), weight + value)
-      println(s"CURRENT FW: ${featuresWeight.value.size} WITH SUB: ${featuresWeight.value.values.size}")
       //featuresWeight(feature)(tag) = weight + value
       //featuresWeight.value(feature) = MMap(tag -> (weight + value))
     }
     updateIteration.add(1)
-    println(s"CURRENT ITERATION: ${updateIteration.value}")
     /**
       * if prediction was wrong, take all features and for each feature get feature's current tags and their weights
       * congratulate if success and punish for wrong in weight
