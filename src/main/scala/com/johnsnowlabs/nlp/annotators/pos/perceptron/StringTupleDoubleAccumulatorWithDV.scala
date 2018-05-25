@@ -7,7 +7,7 @@ import scala.collection.mutable.{Map => MMap}
 class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Double] = MMap.empty[(String, String), Double])
   extends AccumulatorV2[((String, String), Double), Map[(String, String), Double]] {
 
-  private val mmap = defaultMap.withDefaultValue(0.0)
+  private var mmap = defaultMap.withDefaultValue(0.0)
 
   override def reset(): Unit = mmap.clear()
 
@@ -15,19 +15,22 @@ class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Doub
 
   override def value: Map[(String, String), Double] = mmap.toMap
 
-  override def copy(): AccumulatorV2[((String, String), Double), Map[(String, String), Double]] =
-    new StringTupleDoubleAccumulatorWithDV(MMap[(String, String), Double](value.toSeq:_*).withDefaultValue(0.0))
+  override def copy(): AccumulatorV2[((String, String), Double), Map[(String, String), Double]] = {
+    val c = new StringTupleDoubleAccumulatorWithDV(MMap.empty[(String, String), Double])
+    c.mmap = this.mmap
+    c
+  }
 
   override def isZero: Boolean = mmap.isEmpty
 
   override def merge(other: AccumulatorV2[((String, String), Double), Map[(String, String), Double]]): Unit =
-    other.value.foreach{case (k, v) => mmap(k) += v}
+    mmap ++= other.value
 }
 
 class StringMapStringDoubleAccumulatorWithDVMutable(defaultMap: MMap[String, MMap[String, Double]] = MMap.empty[String, MMap[String, Double]])
   extends AccumulatorV2[(String, MMap[String, Double]), MMap[String, MMap[String, Double]]] {
 
-  private val mmap = defaultMap.withDefaultValue(MMap.empty[String, Double].withDefaultValue(0.0))
+  private var mmap = defaultMap.withDefaultValue(MMap.empty[String, Double].withDefaultValue(0.0))
 
   override def reset(): Unit = mmap.clear()
 
@@ -45,8 +48,11 @@ class StringMapStringDoubleAccumulatorWithDVMutable(defaultMap: MMap[String, MMa
 
   override def value: MMap[String, MMap[String, Double]] = mmap
 
-  override def copy(): AccumulatorV2[(String, MMap[String, Double]), MMap[String, MMap[String, Double]]] =
-    new StringMapStringDoubleAccumulatorWithDVMutable(MMap[String, MMap[String, Double]](value.toSeq:_*).withDefaultValue(MMap.empty[String, Double].withDefaultValue(0.0)))
+  override def copy(): AccumulatorV2[(String, MMap[String, Double]), MMap[String, MMap[String, Double]]] = {
+    val c = new StringMapStringDoubleAccumulatorWithDVMutable(MMap.empty[String, MMap[String, Double]])
+    c.mmap = this.mmap
+    c
+  }
 
   override def isZero: Boolean = mmap.isEmpty
 

@@ -19,6 +19,7 @@ import scala.collection.mutable.{ArrayBuffer, Map => MMap}
   * @param timestamps Contains timestamp broadcast
   * @param updateIteration Contains information on how many iterations have run for weighting
   */
+@volatile
 class AveragedPerceptron(
                           tags: Array[String],
                           taggedWordBook: Broadcast[Map[String, String]],
@@ -60,6 +61,7 @@ class AveragedPerceptron(
     * Training level operation
     * once a model was trained, average its weights more in the first iterations
     */
+  @volatile
   private[pos] def averageWeights(): Unit = {
     featuresWeight.value.foreach { case (feature, weights) =>
       featuresWeight.value.update(feature,
@@ -83,8 +85,9 @@ class AveragedPerceptron(
     * non parallel training running outside spark
     * @return
     */
+  @volatile
   def update(truth: String, guess: String, features: Map[String, Int]): Unit = {
-    val a = MMap(timestamps.value.toSeq:_*)
+    val a = MMap.empty[(String, String), Long]
     def updateFeature(tag: String, feature: String, weight: Double, value: Double) = {
       val param = (feature, tag)
       /**

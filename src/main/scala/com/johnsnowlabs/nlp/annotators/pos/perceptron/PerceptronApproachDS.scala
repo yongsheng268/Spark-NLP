@@ -170,6 +170,7 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
               */
             prev2 = prev
             prev = guess
+            iteratedModel.unpersist()
         }
       }
       //iteratedModel.unpersist(true)
