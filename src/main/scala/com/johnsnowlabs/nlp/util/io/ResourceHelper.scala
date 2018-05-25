@@ -25,7 +25,14 @@ import scala.collection.mutable.ListBuffer
   */
 object ResourceHelper {
 
-  val spark: SparkSession = SparkSession.builder().getOrCreate()
+  val spark: SparkSession = SparkSession
+    .builder()
+    .appName("spark-nlp-app")
+    .master("local[*]")
+    .config("spark.driver.memory", "4G")
+    .config("spark.kryoserializer.buffer.max","200M")
+    .config("spark.serializer","org.apache.spark.serializer.KryoSerializer")
+    .getOrCreate()
 
   private def inputStreamOrSequence(fs: FileSystem, files: RemoteIterator[LocatedFileStatus]): InputStream = {
     val firstFile = files.next

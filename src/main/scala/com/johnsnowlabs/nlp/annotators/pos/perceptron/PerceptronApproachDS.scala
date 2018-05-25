@@ -6,6 +6,7 @@ import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
 import com.johnsnowlabs.nlp.{Annotation, AnnotatorApproach, AnnotatorType}
 import com.johnsnowlabs.util.Benchmark
 import com.johnsnowlabs.util.spark.{DoubleMapAccumulatorWithDefault, LongMapAccumulatorWithDefault, TupleKeyLongMapAccumulatorWithDefault}
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
 import org.apache.spark.ml.util.Identifiable
@@ -20,7 +21,7 @@ import scala.util.Random
   * Inspired on Averaged Perceptron by Matthew Honnibal
   * https://explosion.ai/blog/part-of-speech-pos-tagger-in-python
   */
-class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[PerceptronModel] with PerceptronUtils {
+class PerceptronApproach(override val uid: String) extends AnnotatorApproach[PerceptronModel] with PerceptronUtils {
 
   import com.johnsnowlabs.nlp.AnnotatorType._
 
@@ -84,11 +85,87 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
     }.collect.toMap
   }
 
+  val featuresWeight = new StringMapStringDoubleAccumulatorWithDV()
+  val timestamps = new TupleKeyLongMapAccumulatorWithDefault()
+  val updateIteration = new LongAccumulator()
+  val totals = new StringTupleDoubleAccumulatorWithDV()
+  ResourceHelper.spark.sparkContext.register(featuresWeight)
+  ResourceHelper.spark.sparkContext.register(timestamps)
+  ResourceHelper.spark.sparkContext.register(updateIteration)
+  ResourceHelper.spark.sparkContext.register(totals)
+
+  /**
+    * This is model learning tweaking during training, in-place
+    * Uses mutable collections since this runs per word, not per iteration
+    * Hence, performance is needed, without risk as long as this is a
+    * non parallel training running outside spark
+    * @return
+    */
+  @volatile
+  def update(truth: String, guess: String, features: Map[String, Int]): Unit = {
+    val a = MMap.empty[(String, String), Long]
+    def updateFeature(tag: String, feature: String, weight: Double, value: Double) = {
+      val param = (feature, tag)
+      /**
+        * update totals and timestamps
+        */
+      totals.add((param, (updateIteration.value - a.getOrElse(param, timestamps.value(param))) * weight))
+      //totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
+      //timestamps(param) = updateIteration.value
+      a(param) = updateIteration.value
+      /**
+        * update weights
+        */
+      featuresWeight.innerSet((feature, tag), weight + value)
+      //featuresWeight(feature)(tag) = weight + value
+      //featuresWeight.value(feature) = MMap(tag -> (weight + value))
+    }
+    updateIteration.add(1)
+    /**
+      * if prediction was wrong, take all features and for each feature get feature's current tags and their weights
+      * congratulate if success and punish for wrong in weight
+      */
+    if (truth != guess) {
+      features.foreach{case (feature, _) =>
+        val weights = featuresWeight.value(feature)//.getOrElseUpdate(feature, MMap())
+        updateFeature(truth, feature, weights.getOrElse(truth, 0.0), 1.0)
+        updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
+      }
+    }
+    timestamps.updateMany(a)
+  }
+
+  private[pos] def averageWeights(tags: Array[String], taggedWordBook: Broadcast[Map[String, String]]): AveragedPerceptron = {
+    val fw = featuresWeight.value
+    val uiv = updateIteration.value
+    val tv = totals.value
+    val tmv = timestamps.value
+    featuresWeight.reset()
+    updateIteration.reset()
+    totals.reset()
+    timestamps.reset()
+    val finalfw = Benchmark.time("Average weighting took") {fw.map { case (feature, weights) =>
+      (feature, weights.map { case (tag, weight) =>
+        val param = (feature, tag)
+        val total = tv(param) + ((uiv - tmv(param)) * weight)
+        (tag, total / uiv.toDouble)
+      })
+    }}
+    val apr = new AveragedPerceptron(
+      tags,
+      taggedWordBook.value,
+      finalfw
+    )
+    taggedWordBook.destroy()
+    apr
+  }
+
   /**
     * Trains a model based on a provided CORPUS
     *
     * @return A trained averaged model
     */
+  @volatile
   override def train(dataset: Dataset[_], recursivePipeline: Option[PipelineModel]): PerceptronModel = {
     /**
       * Generates TagBook, which holds all the word to tags mapping that are not ambiguous
@@ -116,27 +193,11 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
     val taggedWordBook = dataset.sparkSession.sparkContext.broadcast(buildTagBook(taggedSentences))
     /** finds all distinct tags and stores them */
     val classes = taggedSentences.flatMap(_.tags).distinct.collect
-    val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
-    val timestampsCollection = new TupleKeyLongMapAccumulatorWithDefault()
-    val iteration = new LongAccumulator()
-    val totals = new StringTupleDoubleAccumulatorWithDV()
-    dataset.sparkSession.sparkContext.register(weightCollection)
-    dataset.sparkSession.sparkContext.register(timestampsCollection)
-    dataset.sparkSession.sparkContext.register(iteration)
-    dataset.sparkSession.sparkContext.register(totals)
-    val initialModel = dataset.sparkSession.sparkContext.broadcast(new AveragedPerceptron(
-      classes,
-      taggedWordBook,
-      weightCollection,
-      //MMap.empty[String, MMap[String,Double]],
-      timestampsCollection,
-      iteration,
-      totals
-    ))
+
     /**
       * Iterates for training
       */
-    val trainedModel = Benchmark.time("Time for iterations") { (1 to $(nIterations)).foldLeft(initialModel) { (iteratedModel, iteration) => {
+    Benchmark.time("Time for iterations") { (1 to $(nIterations)).foreach { iteration => {
       logger.debug(s"TRAINING: Iteration n: $iteration")
       /**
         * In a shuffled sentences list, try to find tag of the word, hold the correct answer
@@ -155,11 +216,12 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
                 * if word is not found, collect its features which are used for prediction and predict
                 */
               val features = getFeatures(i, word, context, prev, prev2)
-              val guess = iteratedModel.value.predict(features)
+              val model = new AveragedPerceptron(classes, taggedWordBook.value, featuresWeight.value)
+              val guess = model.predict(features)
               /**
                 * Update the model based on the prediction results
                 */
-              iteratedModel.value.update(taggedSentence.tags(i), guess, features.toMap)
+              update(taggedSentence.tags(i), guess, features.toMap)
               /**
                 * return the guess
                 */
@@ -170,18 +232,16 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
               */
             prev2 = prev
             prev = guess
-            iteratedModel.unpersist()
         }
       }
       //iteratedModel.unpersist(true)
-      iteratedModel
     }}}}
-    trainedModel.value.averageWeights()
+    //trainedModel.value.averageWeights()
     //trainedModel.unpersist(true)
-    println(s"WEIGHT SIZE: ${trainedModel.value.getWeights.size} INNER SIZE: ${trainedModel.value.getWeights.values.size}")
-    println(s"TIMESTAMP SIZE: ${trainedModel.value.getTimestamp.size}")
-    println(s"ITERATION: ${iteration.value}")
+    println(s"WEIGHT SIZE: ${featuresWeight.value.size} INNER SIZE: ${featuresWeight.value.size}")
+    println(s"TIMESTAMP SIZE: ${timestamps.value.size}")
+    println(s"ITERATION: ${updateIteration.value}")
     logger.debug("TRAINING: Finished all iterations")
-    new PerceptronModel().setModel(trainedModel.value)
+    new PerceptronModel().setModel(averageWeights(classes, taggedWordBook))
   }
 }

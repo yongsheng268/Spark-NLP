@@ -1,5 +1,5 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
-
+/*
 import com.johnsnowlabs.nlp.{Annotation, AnnotatorApproach, AnnotatorType}
 import com.johnsnowlabs.nlp.annotators.common.{IndexedTaggedWord, TaggedSentence}
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
@@ -184,4 +184,4 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
   }
 }
 
-object PerceptronApproach extends DefaultParamsReadable[PerceptronApproach]
+object PerceptronApproach extends DefaultParamsReadable[PerceptronApproach]*/
