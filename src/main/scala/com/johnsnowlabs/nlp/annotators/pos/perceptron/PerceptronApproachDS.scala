@@ -1,5 +1,5 @@
 package com.johnsnowlabs.nlp.annotators.pos.perceptron
-  /*
+
 import com.johnsnowlabs.nlp.annotators.common.{IndexedTaggedWord, TaggedSentence}
 import com.johnsnowlabs.nlp.annotators.param.ExternalResourceParam
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
@@ -127,6 +127,7 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
       classes,
       taggedWordBook,
       weightCollection,
+      //MMap.empty[String, MMap[String,Double]],
       timestampsCollection,
       iteration
     )
@@ -172,7 +173,10 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
       iteratedModel
     }}}}
     trainedModel.averageWeights()
+    println(s"WEIGHT SIZE: ${trainedModel.getWeights.size} INNER SIZE: ${trainedModel.getWeights.values.size}")
+    println(s"TIMESTAMP SIZE: ${trainedModel.getTimestamp.size}")
+    println(s"ITERATION: ${iteration.value}")
     logger.debug("TRAINING: Finished all iterations")
     new PerceptronModel().setModel(trainedModel)
   }
-}*/
+}

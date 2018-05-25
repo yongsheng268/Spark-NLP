@@ -23,8 +23,10 @@ class AveragedPerceptron(
                           spark: SparkSession,
                           tags: Array[String],
                           taggedWordBook: Broadcast[Map[String, String]],
+                          //featuresWeight: MMap[String, MMap[String, Double]],
                           featuresWeight: StringMapStringDoubleAccumulatorWithDVMutable,
-                          timestamps: MMap[(String, String), Long],
+                          //timestamps: MMap[(String, String), Long],
+                          timestamps: TupleKeyLongMapAccumulatorWithDefault,
                           updateIteration: LongAccumulator
                          ) extends Serializable {
 
@@ -65,10 +67,10 @@ class AveragedPerceptron(
     */
   private[pos] def averageWeights(): Unit = {
     featuresWeight.value.foreach { case (feature, weights) =>
-      featuresWeight.update(feature,
+      featuresWeight.value.update(feature,
         weights.map { case (tag, weight) =>
           val param = (feature, tag)
-          val total = totals.value(param) + ((updateIteration.value - timestamps(param)) * weight)
+          val total = totals.value(param) + ((updateIteration.value - timestamps.value(param)) * weight)
           (tag, total / updateIteration.value.toDouble)
         }
       )
@@ -78,6 +80,7 @@ class AveragedPerceptron(
   private[nlp] def getTagBook: Map[String, String] = taggedWordBook.value
   private[nlp] def getTags: Array[String] = tags
   def getWeights: Map[String, Map[String, Double]] = featuresWeight.value.mapValues(_.toMap).toMap
+  def getTimestamp = timestamps.value
   /**
     * This is model learning tweaking during training, in-place
     * Uses mutable collections since this runs per word, not per iteration
@@ -86,18 +89,22 @@ class AveragedPerceptron(
     * @return
     */
   def update(truth: String, guess: String, features: Map[String, Int]): Unit = {
-    val a = MMap(timestamps.toSeq:_*)
+    val a = MMap(timestamps.value.toSeq:_*)
     def updateFeature(tag: String, feature: String, weight: Double, value: Double) = {
       val param = (feature, tag)
       /**
         * update totals and timestamps
         */
-      totals.add(param, (updateIteration.value - a.getOrElse(param, timestamps(param))) * weight)
+      //totals.add(param, (updateIteration.value - a.getOrElse(param, timestamps(param))) * weight)
+      totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
+      //timestamps(param) = updateIteration.value
       a(param) = updateIteration.value
       /**
         * update weights
         */
       featuresWeight.innerSet((feature, tag), weight + value)
+      //featuresWeight(feature)(tag) = weight + value
+      //featuresWeight.value(feature) = MMap(tag -> (weight + value))
     }
     updateIteration.add(1)
     /**
@@ -106,11 +113,11 @@ class AveragedPerceptron(
       */
     if (truth != guess) {
       features.foreach{case (feature, _) =>
-        val weights = featuresWeight.value(feature)
+        val weights = featuresWeight.value(feature)//.getOrElseUpdate(feature, MMap())
         updateFeature(truth, feature, weights.getOrElse(truth, 0.0), 1.0)
         updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
       }
     }
-    //timestamps.updateMany(a)
+    timestamps.updateMany(a)
   }
 }

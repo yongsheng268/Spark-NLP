@@ -27,35 +27,32 @@ class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Doub
 class StringMapStringDoubleAccumulatorWithDVMutable(defaultMap: MMap[String, MMap[String, Double]] = MMap.empty[String, MMap[String, Double]])
   extends AccumulatorV2[(String, MMap[String, Double]), MMap[String, MMap[String, Double]]] {
 
-  private val mmap = defaultMap.withDefaultValue(MMap.empty[String, Double])
+  private val mmap = defaultMap.withDefaultValue(MMap.empty[String, Double].withDefaultValue(0.0))
 
   override def reset(): Unit = mmap.clear()
 
   override def add(v: (String, MMap[String, Double])): Unit = {
-    if (mmap.contains(v._1))
-      mmap(v._1).foreach{case (k, vv) => mmap(v._1)(k) += vv}
-    else
-      mmap(v._1) = mmap(v._1) ++ v._2
+    mmap(v._1) = mmap(v._1) ++ v._2
   }
 
   def update(v: (String, MMap[String, Double])): Unit = {
-    mmap(v._1) = v._2
+    mmap(v._1) = mmap(v._1) ++ v._2
   }
 
   def innerSet(k: (String, String), v: Double): Unit = {
-    mmap(k._1) = MMap(k._2 -> v)
+    mmap(k._1) = mmap(k._1) ++ MMap(k._2 -> v)
   }
 
   override def value: MMap[String, MMap[String, Double]] = mmap
 
   override def copy(): AccumulatorV2[(String, MMap[String, Double]), MMap[String, MMap[String, Double]]] =
-    new StringMapStringDoubleAccumulatorWithDVMutable(MMap[String, MMap[String, Double]](value.toSeq:_*).withDefaultValue(MMap.empty[String, Double]))
+    new StringMapStringDoubleAccumulatorWithDVMutable(MMap[String, MMap[String, Double]](value.toSeq:_*).withDefaultValue(MMap.empty[String, Double].withDefaultValue(0.0)))
 
   override def isZero: Boolean = mmap.isEmpty
 
   override def merge(other: AccumulatorV2[(String, MMap[String, Double]), MMap[String, MMap[String, Double]]]): Unit =
     other.value.foreach{case (k, v) => v.foreach{case (kk, vv) =>
-        mmap(k)(kk) += vv
+        mmap(k) = mmap(k) ++ MMap(kk -> vv)
     }}
 }
 
