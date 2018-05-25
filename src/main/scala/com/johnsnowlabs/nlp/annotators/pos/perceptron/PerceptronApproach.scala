@@ -120,17 +120,19 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
     val timestampsCollection = new TupleKeyLongMapAccumulatorWithDefault()
     val iteration = new LongAccumulator()
+    val totals = new StringTupleDoubleAccumulatorWithDV()
     dataset.sparkSession.sparkContext.register(weightCollection)
     dataset.sparkSession.sparkContext.register(timestampsCollection)
     dataset.sparkSession.sparkContext.register(iteration)
+    dataset.sparkSession.sparkContext.register(totals)
     val initialModel = new AveragedPerceptron(
-      dataset.sparkSession,
       classes,
       taggedWordBook,
       weightCollection,
       //MMap.empty[String, MMap[String,Double]],
       timestampsCollection,
-      iteration
+      iteration,
+      totals
     )
     /**
       * Iterates for training

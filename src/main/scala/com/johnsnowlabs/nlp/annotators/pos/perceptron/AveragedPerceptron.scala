@@ -20,20 +20,15 @@ import scala.collection.mutable.{ArrayBuffer, Map => MMap}
   * @param updateIteration Contains information on how many iterations have run for weighting
   */
 class AveragedPerceptron(
-                          spark: SparkSession,
                           tags: Array[String],
                           taggedWordBook: Broadcast[Map[String, String]],
                           //featuresWeight: MMap[String, MMap[String, Double]],
                           featuresWeight: StringMapStringDoubleAccumulatorWithDVMutable,
                           //timestamps: MMap[(String, String), Long],
                           timestamps: TupleKeyLongMapAccumulatorWithDefault,
-                          updateIteration: LongAccumulator
+                          updateIteration: LongAccumulator,
+                          totals: StringTupleDoubleAccumulatorWithDV
                          ) extends Serializable {
-
-  /**How many training iterations ran*/
-  /**totals contains scores for words and their possible tags*/
-  private val totals = new StringTupleDoubleAccumulatorWithDV()
-  spark.sparkContext.register(totals)
 
   def predict(features: List[(String, Int)]): String = {
     /**
@@ -95,18 +90,20 @@ class AveragedPerceptron(
       /**
         * update totals and timestamps
         */
-      //totals.add(param, (updateIteration.value - a.getOrElse(param, timestamps(param))) * weight)
-      totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
+      totals.add((param, (updateIteration.value - a.getOrElse(param, timestamps.value(param))) * weight))
+      //totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
       //timestamps(param) = updateIteration.value
       a(param) = updateIteration.value
       /**
         * update weights
         */
       featuresWeight.innerSet((feature, tag), weight + value)
+      println(s"CURRENT FW: ${featuresWeight.value.size} WITH SUB: ${featuresWeight.value.values.size}")
       //featuresWeight(feature)(tag) = weight + value
       //featuresWeight.value(feature) = MMap(tag -> (weight + value))
     }
     updateIteration.add(1)
+    println(s"CURRENT ITERATION: ${updateIteration.value}")
     /**
       * if prediction was wrong, take all features and for each feature get feature's current tags and their weights
       * congratulate if success and punish for wrong in weight

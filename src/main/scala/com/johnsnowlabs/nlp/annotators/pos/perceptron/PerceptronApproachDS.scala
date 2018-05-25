@@ -119,18 +119,20 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
     val weightCollection = new StringMapStringDoubleAccumulatorWithDVMutable()
     val timestampsCollection = new TupleKeyLongMapAccumulatorWithDefault()
     val iteration = new LongAccumulator()
+    val totals = new StringTupleDoubleAccumulatorWithDV()
     dataset.sparkSession.sparkContext.register(weightCollection)
     dataset.sparkSession.sparkContext.register(timestampsCollection)
     dataset.sparkSession.sparkContext.register(iteration)
-    val initialModel = new AveragedPerceptron(
-      dataset.sparkSession,
+    dataset.sparkSession.sparkContext.register(totals)
+    val initialModel = dataset.sparkSession.sparkContext.broadcast(new AveragedPerceptron(
       classes,
       taggedWordBook,
       weightCollection,
       //MMap.empty[String, MMap[String,Double]],
       timestampsCollection,
-      iteration
-    )
+      iteration,
+      totals
+    ))
     /**
       * Iterates for training
       */
@@ -153,11 +155,11 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
                 * if word is not found, collect its features which are used for prediction and predict
                 */
               val features = getFeatures(i, word, context, prev, prev2)
-              val guess = iteratedModel.predict(features)
+              val guess = iteratedModel.value.predict(features)
               /**
                 * Update the model based on the prediction results
                 */
-              iteratedModel.update(taggedSentence.tags(i), guess, features.toMap)
+              iteratedModel.value.update(taggedSentence.tags(i), guess, features.toMap)
               /**
                 * return the guess
                 */
@@ -170,13 +172,15 @@ class PerceptronApproachDS(override val uid: String) extends AnnotatorApproach[P
             prev = guess
         }
       }
+      //iteratedModel.unpersist(true)
       iteratedModel
     }}}}
-    trainedModel.averageWeights()
-    println(s"WEIGHT SIZE: ${trainedModel.getWeights.size} INNER SIZE: ${trainedModel.getWeights.values.size}")
-    println(s"TIMESTAMP SIZE: ${trainedModel.getTimestamp.size}")
+    trainedModel.value.averageWeights()
+    //trainedModel.unpersist(true)
+    println(s"WEIGHT SIZE: ${trainedModel.value.getWeights.size} INNER SIZE: ${trainedModel.value.getWeights.values.size}")
+    println(s"TIMESTAMP SIZE: ${trainedModel.value.getTimestamp.size}")
     println(s"ITERATION: ${iteration.value}")
     logger.debug("TRAINING: Finished all iterations")
-    new PerceptronModel().setModel(trainedModel)
+    new PerceptronModel().setModel(trainedModel.value)
   }
 }
