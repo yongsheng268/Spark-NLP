@@ -107,9 +107,11 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
               guess: String,
               features: Map[String, Int],
               ii: Long,
-              bb: MMap[String, Map[String, Double]],
-              tt: MMap[(String, String), Long]): Unit = {
-    def updateFeature(tag: String, feature: String, weight: Double, value: Double) = {
+              bb: Map[String, Map[String, Double]],
+              tt: Map[(String, String), Long]) = {
+    val b = MMap.empty[String, Map[String, Double]].withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+    val t = MMap.empty[(String, String), Long].withDefaultValue(0L)
+    def updateFeature(tag: String, feature: String, weight: Double, value: Double): Unit = {
       val param = (feature, tag)
       /**
         * update totals and timestamps
@@ -117,11 +119,11 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       totals.add((param, (ii - tt(param)) * weight))
       //totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
       //timestamps(param) = updateIteration.value
-      tt.update(param, ii)
+      t.update(param, ii)
       /**
         * update weights
         */
-      bb.update(feature, bb(feature) ++ MMap(tag -> (weight + value)))
+      b.update(feature, bb(feature) ++ MMap(tag -> (weight + value)))
       //featuresWeight.add(feature, Map(tag -> (weight + value)))
       //featuresWeight.innerSet((feature, tag), weight + value)
       //featuresWeight(feature)(tag) = weight + value
@@ -139,8 +141,9 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       }
     }
     updateIteration.add(1)
-    timestamps.updateMany(tt)
-    featuresWeight.addMany(bb)
+    timestamps.updateMany(t)
+    featuresWeight.addMany(b)
+    (t, b)
   }
 
   private[pos] def averageWeights(tags: Array[String], taggedWordBook: Broadcast[Map[String, String]]): AveragedPerceptron = {
@@ -218,8 +221,10 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
         var prev = START(0)
         var prev2 = START(1)
         val context = START ++: taggedSentence.words.map(w => normalized(w)) ++: END
-        val bb = MMap(featuresWeight.value.toSeq:_*).withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
-        val tt = MMap(timestamps.value.toSeq:_*).withDefaultValue(0L)
+        //val bb = MMap(featuresWeight.value.toSeq:_*).withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+        var bb = featuresWeight.value
+        //val tt = MMap(timestamps.value.toSeq:_*).withDefaultValue(0L)
+        var tt = timestamps.value
         var ii = updateIteration.value
         taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
           val guess = taggedWordBook.value.getOrElse(word.toLowerCase,{
@@ -227,12 +232,14 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
               * if word is not found, collect its features which are used for prediction and predict
               */
             val features = getFeatures(i, word, context, prev, prev2)
-            val model = new AveragedPerceptron(classes, taggedWordBook.value, bb.toMap.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0)))
+            val model = new AveragedPerceptron(classes, taggedWordBook.value, bb.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0)))
             val guess = model.predict(features)
             /**
               * Update the model based on the prediction results
               */
-            update(taggedSentence.tags(i), guess, features.toMap, ii, bb, tt)
+            val (t, b) = update(taggedSentence.tags(i), guess, features.toMap, ii, bb, tt)
+            tt ++= t
+            bb ++= b
             ii += 1
             /**
               * return the guess
