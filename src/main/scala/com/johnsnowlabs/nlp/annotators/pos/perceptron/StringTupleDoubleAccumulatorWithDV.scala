@@ -27,10 +27,10 @@ class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Doub
     mmap ++= other.value
 }
 
-class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, Map[String, Double]] = MMap.empty[String, Map[String, Double]])
+class StringMapStringDoubleAccumulator(defaultMap: MMap[String, Map[String, Double]] = MMap.empty[String, Map[String, Double]])
   extends AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] {
 
-  private val mmap = defaultMap.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+  private val mmap = defaultMap
 
   override def reset(): Unit = mmap.clear()
 
@@ -38,15 +38,10 @@ class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, Map[String
     mmap.update(v._1, mmap(v._1) ++ v._2)
   }
 
-  def innerSet(k: (String, String), v: Double): Unit = {
-    mmap.update(k._1, mmap(k._1) ++ MMap(k._2 -> v))
-  }
-
   override def value: Map[String, Map[String, Double]] = mmap.toMap
-    .withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
 
   override def copy(): AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] = {
-    val c = new StringMapStringDoubleAccumulatorWithDV(MMap.empty[String, Map[String, Double]])
+    val c = new StringMapStringDoubleAccumulator(MMap.empty[String, Map[String, Double]])
     c.mmap ++= this.mmap
     c
   }
@@ -55,12 +50,12 @@ class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, Map[String
 
   def addMany(other: MMap[String, Map[String, Double]]) =
     other.foreach{case (k, v) => v.foreach{case (kk, vv) =>
-      mmap(k) = mmap(k) ++ MMap(kk -> vv)
+      mmap(k) = mmap.getOrElse(k, Map()) ++ MMap(kk -> vv)
     }}
 
   override def merge(other: AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]]): Unit =
     other match {
-      case o: StringMapStringDoubleAccumulatorWithDV => addMany(o.mmap)
+      case o: StringMapStringDoubleAccumulator => addMany(o.mmap)
       case _ => throw new Exception("Wrong StringMapStringDouble merge")
     }
 }
@@ -77,11 +72,11 @@ class SMSAccumulator(defaultMap: Map[String, Map[String, Double]] = Map.empty[St
   }
 
   override def value: Map[String, Map[String, Double]] = if (mmap.isEmpty) {
-    Map.empty[String, Map[String, Double]].withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+    Map.empty[String, Map[String, Double]]
   } else {
     mmap.reduce{ (a, b) =>
       (a ++ b).map{ case (k,v) => k -> (v ++ a.getOrElse(k,Map.empty[String, Double])) }
-    }.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+    }
   }
 
   override def copy(): AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] = {

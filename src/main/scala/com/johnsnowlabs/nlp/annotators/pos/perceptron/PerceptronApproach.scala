@@ -85,7 +85,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     }.collect.toMap
   }
 
-  val featuresWeight = new StringMapStringDoubleAccumulatorWithDV()
+  val featuresWeight = new StringMapStringDoubleAccumulator()
   val timestamps = new TupleKeyLongMapAccumulatorWithDefault()
   val updateIteration = new LongAccumulator()
   val totals = new StringTupleDoubleAccumulatorWithDV()
@@ -123,7 +123,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       /**
         * update weights
         */
-      b.update(feature, b(feature) ++ MMap(tag -> (weight + value)))
+      b.update(feature, b.getOrElseUpdate(feature, Map()) ++ MMap(tag -> (weight + value)))
       //featuresWeight.add(feature, Map(tag -> (weight + value)))
       //featuresWeight.innerSet((feature, tag), weight + value)
       //featuresWeight(feature)(tag) = weight + value
@@ -135,7 +135,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       */
     if (truth != guess) {
       features.foreach{case (feature, _) =>
-        val weights = b(feature)//.getOrElseUpdate(feature, MMap())
+        val weights = b.getOrElseUpdate(feature, Map())
         updateFeature(truth, feature, weights.getOrElse(truth, 0.0), 1.0)
         updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
       }
