@@ -59,7 +59,7 @@ class TupleKeyLongMapAccumulatorWithDefault(defaultMap: MMap[(String, String), L
   override def add(v: ((String, String), Long)): Unit = mmap(v._1) = v._2
 
   def updateMany(v: MMap[(String, String), Long]): Unit = {
-    mmap = mmap ++ v
+    mmap ++= v
   }
 
   def update(k: (String, String), v: Long): Unit =  mmap(k) = v
@@ -76,5 +76,9 @@ class TupleKeyLongMapAccumulatorWithDefault(defaultMap: MMap[(String, String), L
   override def isZero: Boolean = mmap.isEmpty
 
   override def merge(other: AccumulatorV2[((String, String), Long), Map[(String, String), Long]]): Unit =
-    mmap = mmap ++ other.value
+    other match {
+      case o: TupleKeyLongMapAccumulatorWithDefault =>
+        mmap = mmap ++ o.mmap
+      case _ => throw new Exception("Cannot merge tuple key long")
+    }
 }

@@ -2,7 +2,7 @@ package com.johnsnowlabs.nlp.annotators.pos.perceptron
 
 import org.apache.spark.util.AccumulatorV2
 
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{ArrayBuffer, Map => MMap}
 
 class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Double] = MMap.empty[(String, String), Double])
   extends AccumulatorV2[((String, String), Double), Map[(String, String), Double]] {
@@ -27,14 +27,14 @@ class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Doub
     mmap ++= other.value
 }
 
-class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, MMap[String, Double]] = MMap.empty[String, MMap[String, Double]])
-  extends AccumulatorV2[(String, MMap[String, Double]), Map[String, Map[String, Double]]] {
+class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, Map[String, Double]] = MMap.empty[String, Map[String, Double]])
+  extends AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] {
 
-  private var mmap = defaultMap.withDefaultValue(MMap.empty[String, Double].withDefaultValue(0.0))
+  private var mmap = defaultMap.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
 
   override def reset(): Unit = mmap.clear()
 
-  override def add(v: (String, MMap[String, Double])): Unit = {
+  override def add(v: (String, Map[String, Double])): Unit = {
     mmap(v._1) = mmap(v._1) ++ v._2
   }
 
@@ -46,20 +46,56 @@ class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, MMap[Strin
     mmap(k._1) = mmap(k._1) ++ MMap(k._2 -> v)
   }
 
-  override def value: Map[String, Map[String, Double]] = mmap.mapValues(_.toMap).toMap
+  override def value: Map[String, Map[String, Double]] = mmap.toMap
     .withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
 
-  override def copy(): AccumulatorV2[(String, MMap[String, Double]), Map[String, Map[String, Double]]] = {
-    val c = new StringMapStringDoubleAccumulatorWithDV(MMap.empty[String, MMap[String, Double]])
+  override def copy(): AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] = {
+    val c = new StringMapStringDoubleAccumulatorWithDV(MMap.empty[String, Map[String, Double]])
     c.mmap = this.mmap
     c
   }
 
   override def isZero: Boolean = mmap.isEmpty
 
-  override def merge(other: AccumulatorV2[(String, MMap[String, Double]), Map[String, Map[String, Double]]]): Unit =
-    other.value.foreach{case (k, v) => v.foreach{case (kk, vv) =>
-        mmap(k) = mmap(k) ++ MMap(kk -> vv)
+  def addMany(other: MMap[String, Map[String, Double]]) =
+    other.foreach{case (k, v) => v.foreach{case (kk, vv) =>
+      mmap(k) = mmap(k) ++ MMap(kk -> vv)
     }}
+
+  override def merge(other: AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]]): Unit =
+    other match {
+      case o: StringMapStringDoubleAccumulatorWithDV => addMany(o.mmap)
+      case _ => throw new Exception("Wrong StringMapStringDouble merge")
+    }
 }
 
+class SMSAccumulator(defaultMap: Map[String, Map[String, Double]] = Map.empty[String, Map[String, Double]])
+  extends AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] {
+  
+  private var mmap = ArrayBuffer.empty[Map[String, Map[String, Double]]]
+
+  override def reset(): Unit = mmap.clear()
+
+  override def add(v: (String, Map[String, Double])): Unit = {
+    mmap.append(Map(v._1 -> v._2))
+  }
+
+  override def value: Map[String, Map[String, Double]] = if (mmap.isEmpty) {
+    Map.empty[String, Map[String, Double]].withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+  } else {
+    mmap.reduce{ (a, b) =>
+      (a ++ b).map{ case (k,v) => k -> (v ++ a.getOrElse(k,Map.empty[String, Double])) }
+    }.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+  }
+
+  override def copy(): AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] = {
+    val c = new SMSAccumulator(Map.empty[String, Map[String, Double]])
+    c.mmap = this.mmap
+    c
+  }
+
+  override def isZero: Boolean = mmap.isEmpty
+
+  override def merge(other: AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]]): Unit =
+    mmap ++= ArrayBuffer(other.value)
+  }
