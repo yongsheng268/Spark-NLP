@@ -109,7 +109,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
               ii: Long,
               bb: Map[String, Map[String, Double]],
               tt: Map[(String, String), Long]) = {
-    val b = MMap.empty[String, Map[String, Double]].withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+    val b = MMap.empty[String, Map[String, Double]]
     val t = MMap.empty[(String, String), Long].withDefaultValue(0L)
     def updateFeature(tag: String, feature: String, weight: Double, value: Double): Unit = {
       val param = (feature, tag)
