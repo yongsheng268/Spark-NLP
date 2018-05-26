@@ -102,41 +102,45 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
     * @return
     */
   @volatile
-  def update(truth: String, guess: String, features: Map[String, Int]): Unit = {
-    val a = MMap.empty[(String, String), Long]
-    val b = MMap.empty[String, Map[String, Double]].withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+  def update(
+              truth: String,
+              guess: String,
+              features: Map[String, Int],
+              ii: Long,
+              bb: MMap[String, Map[String, Double]],
+              tt: MMap[(String, String), Long]): Unit = {
     def updateFeature(tag: String, feature: String, weight: Double, value: Double) = {
       val param = (feature, tag)
       /**
         * update totals and timestamps
         */
-      totals.add((param, (updateIteration.value - a.getOrElse(param, timestamps.value(param))) * weight))
+      totals.add((param, (ii - tt(param)) * weight))
       //totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
       //timestamps(param) = updateIteration.value
-      a(param) = updateIteration.value
+      tt.update(param, ii)
       /**
         * update weights
         */
-      b(feature) = b(feature) ++ MMap(tag -> (weight + value))
+      bb.update(feature, bb(feature) ++ MMap(tag -> (weight + value)))
       //featuresWeight.add(feature, Map(tag -> (weight + value)))
       //featuresWeight.innerSet((feature, tag), weight + value)
       //featuresWeight(feature)(tag) = weight + value
       //featuresWeight.value(feature) = MMap(tag -> (weight + value))
     }
-    updateIteration.add(1)
     /**
       * if prediction was wrong, take all features and for each feature get feature's current tags and their weights
       * congratulate if success and punish for wrong in weight
       */
     if (truth != guess) {
       features.foreach{case (feature, _) =>
-        val weights = b.getOrElse(feature, featuresWeight.value(feature))//.getOrElseUpdate(feature, MMap())
+        val weights = bb(feature)//.getOrElseUpdate(feature, MMap())
         updateFeature(truth, feature, weights.getOrElse(truth, 0.0), 1.0)
         updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
       }
     }
-    timestamps.updateMany(a)
-    featuresWeight.addMany(b)
+    updateIteration.add(1)
+    timestamps.updateMany(tt)
+    featuresWeight.addMany(bb)
   }
 
   private[pos] def averageWeights(tags: Array[String], taggedWordBook: Broadcast[Map[String, String]]): AveragedPerceptron = {
@@ -214,18 +218,22 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
         var prev = START(0)
         var prev2 = START(1)
         val context = START ++: taggedSentence.words.map(w => normalized(w)) ++: END
+        val bb = MMap(featuresWeight.value.toSeq:_*).withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+        val tt = MMap(timestamps.value.toSeq:_*).withDefaultValue(0L)
+        var ii = updateIteration.value
         taggedSentence.words.zipWithIndex.foreach { case (word, i) =>
           val guess = taggedWordBook.value.getOrElse(word.toLowerCase,{
             /**
               * if word is not found, collect its features which are used for prediction and predict
               */
             val features = getFeatures(i, word, context, prev, prev2)
-            val model = new AveragedPerceptron(classes, taggedWordBook.value, featuresWeight.value)
+            val model = new AveragedPerceptron(classes, taggedWordBook.value, bb.toMap.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0)))
             val guess = model.predict(features)
             /**
               * Update the model based on the prediction results
               */
-            update(taggedSentence.tags(i), guess, features.toMap)
+            update(taggedSentence.tags(i), guess, features.toMap, ii, bb, tt)
+            ii += 1
             /**
               * return the guess
               */
@@ -242,8 +250,8 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       }}}}
     //trainedModel.value.averageWeights()
     //trainedModel.unpersist(true)
-    println(s"WEIGHT SIZE: ${featuresWeight.value.size} INNER SIZE: ${featuresWeight.value.size}")
-    println(s"TIMESTAMP SIZE: ${timestamps.value.size}")
+    //println(s"WEIGHT SIZE: ${featuresWeight.value.size} INNER SIZE: ${featuresWeight.value.size}")
+    //println(s"TIMESTAMP SIZE: ${timestamps.value.size}")
     println(s"ITERATION: ${updateIteration.value}")
     logger.debug("TRAINING: Finished all iterations")
     new PerceptronModel().setModel(averageWeights(classes, taggedWordBook))

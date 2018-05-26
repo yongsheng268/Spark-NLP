@@ -30,20 +30,16 @@ class StringTupleDoubleAccumulatorWithDV(defaultMap: MMap[(String, String), Doub
 class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, Map[String, Double]] = MMap.empty[String, Map[String, Double]])
   extends AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] {
 
-  private var mmap = defaultMap.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
+  private val mmap = defaultMap.withDefaultValue(Map.empty[String, Double].withDefaultValue(0.0))
 
   override def reset(): Unit = mmap.clear()
 
   override def add(v: (String, Map[String, Double])): Unit = {
-    mmap(v._1) = mmap(v._1) ++ v._2
-  }
-
-  def update(v: (String, MMap[String, Double])): Unit = {
-    mmap(v._1) = mmap(v._1) ++ v._2
+    mmap.update(v._1, mmap(v._1) ++ v._2)
   }
 
   def innerSet(k: (String, String), v: Double): Unit = {
-    mmap(k._1) = mmap(k._1) ++ MMap(k._2 -> v)
+    mmap.update(k._1, mmap(k._1) ++ MMap(k._2 -> v))
   }
 
   override def value: Map[String, Map[String, Double]] = mmap.toMap
@@ -51,7 +47,7 @@ class StringMapStringDoubleAccumulatorWithDV(defaultMap: MMap[String, Map[String
 
   override def copy(): AccumulatorV2[(String, Map[String, Double]), Map[String, Map[String, Double]]] = {
     val c = new StringMapStringDoubleAccumulatorWithDV(MMap.empty[String, Map[String, Double]])
-    c.mmap = this.mmap
+    c.mmap ++= this.mmap
     c
   }
 
