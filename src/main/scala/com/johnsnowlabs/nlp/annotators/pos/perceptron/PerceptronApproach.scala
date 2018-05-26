@@ -116,14 +116,14 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       /**
         * update totals and timestamps
         */
-      totals.add((param, (ii - tt(param)) * weight))
+      totals.add((param, (ii - t(param)) * weight))
       //totals.add(param, (updateIteration.value - timestamps.value(param)) * weight)
       //timestamps(param) = updateIteration.value
       t.update(param, ii)
       /**
         * update weights
         */
-      b.update(feature, bb(feature) ++ MMap(tag -> (weight + value)))
+      b.update(feature, b(feature) ++ MMap(tag -> (weight + value)))
       //featuresWeight.add(feature, Map(tag -> (weight + value)))
       //featuresWeight.innerSet((feature, tag), weight + value)
       //featuresWeight(feature)(tag) = weight + value
@@ -135,7 +135,7 @@ class PerceptronApproach(override val uid: String) extends AnnotatorApproach[Per
       */
     if (truth != guess) {
       features.foreach{case (feature, _) =>
-        val weights = bb(feature)//.getOrElseUpdate(feature, MMap())
+        val weights = b(feature)//.getOrElseUpdate(feature, MMap())
         updateFeature(truth, feature, weights.getOrElse(truth, 0.0), 1.0)
         updateFeature(guess, feature, weights.getOrElse(guess, 0.0), -1.0)
       }
