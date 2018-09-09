@@ -91,7 +91,7 @@ class Tokenizer(override val uid: String) extends AnnotatorModel[Tokenizer] {
       })
       rule.append(ip)
       get(suffixPattern).orElse(if (!$(includeDefaults)) None else Some(suffixDefault)).foreach(sp => {
-        require(sp.endsWith("\\z"), "suffixPattern must end with \\z to ensure it is the end of the string")
+          require(sp.endsWith("\\z"), "suffixPattern must end with \\z to ensure it is the end of the string")
         require(sp.contains("(") && sp.contains(")"), "suffixPattern must contain regex groups. Each group will return in separate token")
         rule.append(sp)
       })

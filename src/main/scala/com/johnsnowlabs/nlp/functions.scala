@@ -1,7 +1,7 @@
 package com.johnsnowlabs.nlp
 
 import org.apache.spark.sql.{DataFrame, Row}
-import org.apache.spark.sql.functions.{col, udf, explode, array}
+import org.apache.spark.sql.functions.{col, udf, explode, array, collect_list}
 import scala.reflect.runtime.universe._
 
 object functions {
@@ -37,5 +37,18 @@ object functions {
       }
   }
 
+  implicit class GroupAnnotations(dataset: DataFrame) {
+    def groupAnnotations[T: TypeTag](column: String, outputCol:String, function: Annotation => T): DataFrame = {
+      val meta = dataset.schema(column).metadata
+      val func = udf {
+        row: Row =>
+          function(Annotation(row))
+      }
+      dataset.
+        withColumn(column, explode(col(column))).
+        groupBy(func(col(column))).
+        agg(collect_list(col(column)).as(outputCol, meta))
+    }
+  }
 
 }

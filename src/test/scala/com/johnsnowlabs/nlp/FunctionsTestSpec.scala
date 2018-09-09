@@ -31,21 +31,27 @@ class FunctionsTestSpec extends FlatSpec {
       ))
 
     val model = pipeline.fit(Seq.empty[String].toDF("text"))
-    val data = model.transform(Seq("Peter is a very good and compromised person.").toDF("text"))
+    val singleLineData = model.transform(Seq("Peter is a very good and compromised person.").toDF("text"))
 
     import functions._
 
-    val mapped = data.mapAnnotations("pos", "modpos", (annotations: Seq[Annotation]) => {
+    val mapped = singleLineData.mapAnnotations("pos", "modpos", (annotations: Seq[Annotation]) => {
       annotations.filter(_.result == "JJ")
     })
 
-    val modified = data.mapAnnotations("pos", "modpos", (_: Seq[Annotation]) => {
+    val modified = singleLineData.mapAnnotations("pos", "modpos", (_: Seq[Annotation]) => {
       "hello world"
     })
 
-    val filtered = data.filterByAnnotations("pos", (annotations: Seq[Annotation]) => {
+    val filtered = singleLineData.filterByAnnotations("pos", (annotations: Seq[Annotation]) => {
       annotations.exists(_.result == "JJ")
     })
+
+    val grouped = singleLineData.groupAnnotations("pos", "grouped", { annotation =>
+      annotation.result.contains("B")
+    })
+
+
 
     mapped.show(truncate = false)
     modified.show(truncate = false)

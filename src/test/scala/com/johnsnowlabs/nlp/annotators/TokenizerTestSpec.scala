@@ -21,6 +21,15 @@ class TokenizerTestSpec extends FlatSpec with TokenizerBehaviors {
     assert(regexTokenizer.annotatorType == AnnotatorType.TOKEN)
   }
 
+  "a Tokenizer" should "handle infix patterns" in {
+    val targetText = "Crazy software behaviors should be documented\nand tested!!!"
+    val data = DataBuilder.basicDataBuild(targetText)
+
+    regexTokenizer.setInfixPatterns(Array("(\n)"))
+
+
+  }
+  val targetText1 = "Crazy software behaviors should be documented\nand tested!!!"
 
   val targetText = "Hello, I won't be from New York in the U.S.A. (and you know it héroe). Give me my horse! or $100" +
     " bucks 'He said', I'll defeat markus-crassus. You understand. Goodbye George E. Bush. www.google.com."
@@ -31,9 +40,12 @@ class TokenizerTestSpec extends FlatSpec with TokenizerBehaviors {
   )
 
   "a Tokenizer" should "correctly tokenize target text on its defaults parameters with composite" in {
-    val data = DataBuilder.basicDataBuild(targetText)
-    val document = new DocumentAssembler().setInputCol("text").setOutputCol("document")
-    val tokenizer = new Tokenizer().setInputCols("document").setOutputCol("token").setCompositeTokens(Array("New York"))
+    val data = DataBuilder.basicDataBuild(targetText1)
+    val document = new DocumentAssembler().setInputCol("text").setOutputCol("document").setTrimAndClearNewLines(false)
+    val tokenizer = new Tokenizer().setInputCols("document").setOutputCol("token").setCompositeTokens(Array("New York")).
+      setInfixPatterns(Array("(\\S+)(\\n)(\\S+)")).
+      //setIncludeDefaults(false).
+      setTargetPattern("\\S+|\n|,|\\.")
     val finisher = new Finisher().setInputCols("token").setOutputAsArray(true).setCleanAnnotations(false).setOutputCols("output")
     val pipeline = new Pipeline().setStages(Array(document, tokenizer, finisher))
     val pip = pipeline.fit(data).transform(data)
