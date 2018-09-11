@@ -235,8 +235,9 @@ object OcrHelper {
             case _: NullPointerException => List()
           }
         }
-        regions.flatMap(_.map { rectangle =>
-          (pageNum, api.doOCR(dilatedImage, rectangle))
+        regions.par.flatMap(_.map { rectangle =>
+           val apiLocal = initTesseract()
+          (pageNum, apiLocal.doOCR(dilatedImage, rectangle))
         })
       }
       else
