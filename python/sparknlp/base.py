@@ -124,7 +124,7 @@ class Annotation:
 
 class LightPipeline:
     def __init__(self, pipelineModel):
-        self._lightPipeline = _internal._LightPipeline(pipelineModel).apply()
+        self._lightPipeline = _internal._LightPipeline(pipelineModel)#.apply()
 
     @staticmethod
     def _annotation_from_java(java_annotations):
@@ -140,7 +140,7 @@ class LightPipeline:
 
     def fullAnnotate(self, target):
         result = []
-        for row in self._lightPipeline.fullAnnotateJava(target):
+        for row in self._lightPipeline.apply().fullAnnotateJava(target):
             kas = {}
             for atype, annotations in row.items():
                 kas[atype] = self._annotation_from_java(annotations)
@@ -152,7 +152,7 @@ class LightPipeline:
         def reformat(annotations):
             return {k: list(v) for k, v in annotations.items()}
 
-        annotations = self._lightPipeline.annotateJava(target)
+        annotations = self._lightPipeline.apply().annotateJava(target)
 
         if type(target) is str:
             result = reformat(annotations)
