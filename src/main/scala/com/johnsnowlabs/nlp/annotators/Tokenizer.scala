@@ -120,7 +120,7 @@ class Tokenizer(override val uid: String) extends AnnotatorModel[Tokenizer] {
       var offset = 0
       /** Step 2, Return protected tokens back into text and move on */
       val tokens = SPLIT_PATTERN.r.findAllMatchIn(protectedText).flatMap { candidate => {
-        if (get(compositeTokens).isDefined && candidate.matched.startsWith(PROTECT_CHAR)) {
+        if (get(compositeTokens).isDefined && candidate.matched.contains(PROTECT_CHAR)) {
           /** Put back character and move on */
           val r = IndexedToken(
             text.content.slice(text.start + candidate.start - offset, text.start + candidate.end - 1 - offset),
