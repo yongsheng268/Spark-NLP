@@ -107,50 +107,57 @@ class Tokenizer(override val uid: String) extends AnnotatorModel[Tokenizer] {
   private lazy val SPLIT_PATTERN = "[^" + BREAK_CHAR + "]+"
 
   def tag(sentences: Seq[Sentence]): Seq[TokenizedSentence] = {
-    sentences.map{text =>
+    sentences.map{text => {
       /** Step 1, define breaks from non breaks */
       val protectedText = {
         get(compositeTokens).map(_.foldRight(text.content)((compositeToken, currentText) => {
           currentText.replaceAll(
             compositeToken,
-            compositeToken.replaceAll(BREAK_PATTERN, PROTECT_CHAR)
+            PROTECT_CHAR + compositeToken.replaceAll(BREAK_PATTERN, PROTECT_CHAR) // This adds an offset prefix char. Adjust later
           )
         })).getOrElse(text.content).replaceAll(BREAK_PATTERN, BREAK_CHAR)
       }
-      /** Step 2, Return protected tokens back into text and move on*/
-      val tokens = SPLIT_PATTERN.r.findAllMatchIn(protectedText).flatMap { candidate =>
-        if (get(compositeTokens).isDefined && candidate.matched.contains(PROTECT_CHAR)) {
+      var offset = 0
+      /** Step 2, Return protected tokens back into text and move on */
+      val tokens = SPLIT_PATTERN.r.findAllMatchIn(protectedText).flatMap { candidate => {
+        if (get(compositeTokens).isDefined && candidate.matched.startsWith(PROTECT_CHAR)) {
           /** Put back character and move on */
-          Seq(IndexedToken(
-            text.content.slice(text.start + candidate.start, text.start + candidate.end),
-            text.start + candidate.start,
-            text.start + candidate.end - 1
-          ))
+          val r = IndexedToken(
+            text.content.slice(text.start + candidate.start - offset, text.start + candidate.end - 1 - offset),
+            text.start + candidate.start - offset,
+            text.start + candidate.end - 2 - offset
+          )
+          offset += 1
+          println(s"PARSING CUSTOM STUFF $r")
+          Seq(r)
         }
         else {
-        /** Step 3, If no exception found, find candidates through the possible general rule patterns*/
-        ruleFactory.findMatchFirstOnly(candidate.matched).map {m =>
-          var curPos = m.content.start
-          (1 to m.content.groupCount)
-            .map (i => {
-              val target = m.content.group(i)
-              val it = IndexedToken(
-                target,
-                text.start + candidate.start + curPos,
-                text.start + candidate.start + curPos + target.length - 1
-              )
-              curPos += target.length
-              it
-            })
-          /** Step 4, If rules didn't match, return whatever candidate we have and leave it as is*/
+          /** Step 3, If no exception found, find candidates through the possible general rule patterns */
+          ruleFactory.findMatchFirstOnly(candidate.matched).map { m =>
+            var curPos = m.content.start
+            (1 to m.content.groupCount)
+              .map(i => {
+                val target = m.content.group(i)
+                val it = IndexedToken(
+                  target,
+                  text.start + candidate.start + curPos - offset,
+                  text.start + candidate.start + curPos + target.length - 1 - offset
+                )
+                curPos += target.length
+                it
+              })
+
+            /** Step 4, If rules didn't match, return whatever candidate we have and leave it as is */
           }.getOrElse(Seq(IndexedToken(
             candidate.matched,
-            text.start + candidate.start,
-            text.start + candidate.end - 1
-        )))
-      }}.toArray.filter(t => t.token.nonEmpty)
+            text.start + candidate.start - offset,
+            text.start + candidate.end - 1 - offset
+          )))
+        }
+      }
+      }.toArray.filter(t => t.token.nonEmpty)
       TokenizedSentence(tokens)
-    }
+    }}
   }
 
   /** one to many annotation */
