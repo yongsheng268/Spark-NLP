@@ -122,14 +122,28 @@ class Tokenizer(override val uid: String) extends AnnotatorModel[Tokenizer] {
       val tokens = SPLIT_PATTERN.r.findAllMatchIn(protectedText).flatMap { candidate => {
         if (get(compositeTokens).isDefined && candidate.matched.contains(PROTECT_CHAR)) {
           /** Put back character and move on */
-          val r = IndexedToken(
-            text.content.slice(text.start + candidate.start - offset, text.start + candidate.end - 1 - offset),
+          val compositeInfix = $(compositeTokens).map(c => PROTECT_CHAR + c.replaceAll(BREAK_PATTERN, PROTECT_CHAR)).find(candidate.matched.contains(_)).get
+          val compositePrefix = candidate.matched.slice(0, candidate.matched.indexOf(compositeInfix))
+          val compositeSuffix = candidate.matched.slice(candidate.matched.indexOf(compositeInfix) + compositeInfix.length, candidate.end)
+          println(s"protecting $candidate")
+          val p = IndexedToken(
+            compositePrefix,
             text.start + candidate.start - offset,
+            text.start + candidate.start + compositePrefix.length - 1 - offset
+          )
+          val s = IndexedToken(
+            compositeSuffix,
+            text.start + candidate.start + candidate.matched.indexOf(compositeSuffix) - 1 - offset,
             text.start + candidate.end - 2 - offset
           )
+          val i = IndexedToken(
+            text.content.slice(text.start + candidate.start + p.token.length - offset, text.start + candidate.end - s.token.length - 1 - offset),
+            text.start + candidate.start + p.token.length - offset,
+            text.start + candidate.end - s.token.length - 2 - offset
+          )
           offset += 1
-          println(s"PARSING CUSTOM STUFF $r")
-          Seq(r)
+          println(s"PARSING CUSTOM STUFF $p + $i + $s")
+          Seq(p, i, s)
         }
         else {
           /** Step 3, If no exception found, find candidates through the possible general rule patterns */
