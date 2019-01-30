@@ -82,7 +82,8 @@ lazy val ocrDependencies = Seq(
     exclude("org.slf4j", "slf4j-log4j12")
     exclude("org.apache.logging", "log4j"),
   "org.apache.pdfbox" % "pdfbox" % "2.0.13",
-  "org.apache.pdfbox" % "jbig2-imageio" % "3.0.2"
+  "org.apache.pdfbox" % "jbig2-imageio" % "3.0.2",
+  "com.levigo.jbig2" % "levigo-jbig2-imageio" % "2.0"
 )
 
 lazy val analyticsDependencies = Seq(
