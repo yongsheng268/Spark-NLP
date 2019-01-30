@@ -4,7 +4,6 @@ import java.awt.Image
 import java.awt.image.{BufferedImage, DataBufferByte, RenderedImage}
 import java.io.{File, FileInputStream, FileNotFoundException, InputStream}
 
-import javax.media.jai.PlanarImage
 import net.sourceforge.tess4j.ITessAPI.{TessOcrEngineMode, TessPageIteratorLevel, TessPageSegMode}
 import net.sourceforge.tess4j.Tesseract
 import net.sourceforge.tess4j.util.LoadLibs
@@ -184,14 +183,14 @@ object OcrHelper {
     api.setOcrEngineMode(engineMode)
     api
   }
-
+/*
   def reScaleImage(image: PlanarImage, factor: Float) = {
     val width = image.getWidth * factor
     val height = image.getHeight * factor
     val scaledImg = image.getAsBufferedImage().
     getScaledInstance(width.toInt, height.toInt, Image.SCALE_AREA_AVERAGING)
     toBufferedImage(scaledImg)
-  }
+  }*/
 
   /* erode the image */
   def erode(bi: BufferedImage, kernelSize: Int) = {
@@ -252,12 +251,15 @@ object OcrHelper {
     val renderedImages = getImageFromPDF(pdfDoc, startPage - 1, endPage - 1)
 
     val imageRegions = renderedImages.flatMap(render => {
+      /*
       val image = PlanarImage.wrapRenderedImage(render)
 
       // rescale if factor provided
       val scaledImage = scalingFactor.map { factor =>
         reScaleImage(image, factor)
-      }.getOrElse(image.getAsBufferedImage)
+      }.getOrElse(image.getAsBufferedImage)*/
+
+      val scaledImage = convertRenderedImage(render)
 
       // erode if kernel provided
       val dilatedImage = kernelSize.map {kernelRadio =>
@@ -288,7 +290,39 @@ object OcrHelper {
 
   }
 
-  private def pdfboxMethod(pdfDoc: PDDocument, startPage: Int, endPage: Int): Option[Seq[String]] = {
+  import java.awt.image.BufferedImage
+  import java.awt.image.RenderedImage
+  import java.util
+
+  def convertRenderedImage(img: RenderedImage): BufferedImage = {
+    if (img.isInstanceOf[BufferedImage]) return img.asInstanceOf[BufferedImage]
+    val cm = img.getColorModel
+    val width = img.getWidth
+    val height = img.getHeight
+    val raster = cm.createCompatibleWritableRaster(width, height)
+    val isAlphaPremultiplied = cm.isAlphaPremultiplied
+    val properties = new util.Hashtable[String, AnyRef]
+    val keys = img.getPropertyNames
+
+    if (keys != null) {
+      var i = 0
+      while ( {
+        i < keys.length
+      }) {
+        properties.put(keys(i), img.getProperty(keys(i)))
+
+        {
+          i += 1; i - 1
+        }
+      }
+    }
+    val result = new BufferedImage(cm, raster, isAlphaPremultiplied, properties)
+    img.copyData(raster)
+    result
+  }
+
+
+  private def pdfboxMethod(pdfDoc: PDDocument, startPage: Int, endPage: Int) = {
 
     Option(extractText(pdfDoc, startPage, endPage))
 
