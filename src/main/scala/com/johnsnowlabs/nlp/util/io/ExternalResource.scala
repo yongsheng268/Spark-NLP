@@ -7,8 +7,8 @@ import com.johnsnowlabs.nlp.serialization.SerializedExternalResource
   * how an external resource shall be read by Spark-NLP's Resource Helper */
 case class ExternalResource(
                              path: String,
-                             readAs: ReadAs.Format,
-                             options: Map[String, String]
+                             readAs: ReadAs.Format = ReadAs.LINE_BY_LINE,
+                             options: Map[String, String] = Map.empty
                            ) extends WritableAnnotatorComponent {
 
   if (readAs == ReadAs.SPARK_DATASET)

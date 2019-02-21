@@ -41,7 +41,7 @@ class CoNLL2003NerReader(wordEmbeddingsFile: String,
     }
 
     if (new File(fileDb).exists()) {
-      wordEmbeddings = WordEmbeddingsRetriever(fileDb, wordEmbeddingsNDims, normalize)
+      wordEmbeddings = new WordEmbeddingsRetriever(fileDb, wordEmbeddingsNDims, normalize)
     }
   }
 

@@ -43,6 +43,14 @@ trait ModelWithWordEmbeddings extends HasEmbeddings {
     }
   }
 
+  override def getClusterEmbeddings: ClusterWordEmbeddings = {
+    if (isDefined(embeddingsDim))
+      super.getClusterEmbeddings
+    else {
+      ClusterWordEmbeddings.empty
+    }
+  }
+
   def serializeEmbeddings(path: String, spark: SparkSession): Unit = {
     if ($(includeEmbeddings)) {
       val index = new Path(EmbeddingsHelper.getLocalEmbeddingsPath(getClusterEmbeddings.fileName))
@@ -60,6 +68,7 @@ trait ModelWithWordEmbeddings extends HasEmbeddings {
 
   override def onWrite(path: String, spark: SparkSession): Unit = {
     /** Param only useful for runtime execution */
-    serializeEmbeddings(path, spark)
+    if (isDefined(embeddingsDim))
+      serializeEmbeddings(path, spark)
   }
 }

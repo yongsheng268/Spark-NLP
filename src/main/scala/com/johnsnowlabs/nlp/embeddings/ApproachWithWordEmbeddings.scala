@@ -48,25 +48,27 @@ abstract class ApproachWithWordEmbeddings[A <: ApproachWithWordEmbeddings[A, M],
       )
     } else if (isSet(embeddingsRef)) {
       getClusterEmbeddings
-    } else
-      throw new IllegalArgumentException(
-        s"Word embeddings not found. Either sourceEmbeddingsPath not set," +
-          s" or not in cache by ref: ${get(embeddingsRef).getOrElse("-embeddingsRef not set-")}. " +
-          s"Load using EmbeddingsHelper .loadEmbeddings() and .setEmbeddingsRef() to make them available."
-      )
+    }
+  }
 
+  override def getClusterEmbeddings: ClusterWordEmbeddings = {
+    if (isDefined(sourceEmbeddingsPath))
+      super.getClusterEmbeddings
+    else {
+      ClusterWordEmbeddings.empty
+    }
   }
 
   override def onTrained(model: M, spark: SparkSession): Unit = {
+    if (isDefined(sourceEmbeddingsPath)) {
+      model.setIncludeEmbeddings($(includeEmbeddings))
+      model.setEmbeddingsDim($(embeddingsDim))
+      model.setCaseSensitiveEmbeddings($(caseSensitiveEmbeddings))
 
-    model.setIncludeEmbeddings($(includeEmbeddings))
-    model.setEmbeddingsDim($(embeddingsDim))
-    model.setCaseSensitiveEmbeddings($(caseSensitiveEmbeddings))
+      if (isSet(embeddingsRef)) model.setEmbeddingsRef($(embeddingsRef))
 
-    if (isSet(embeddingsRef)) model.setEmbeddingsRef($(embeddingsRef))
-
-    getClusterEmbeddings.getLocalRetriever.close()
-
+      getClusterEmbeddings.getLocalRetriever.close()
+    }
   }
 
 }

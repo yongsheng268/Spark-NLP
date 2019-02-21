@@ -24,21 +24,26 @@ class ClusterWordEmbeddings(val fileName: String, val dim: Int, val caseSensitiv
     if (Option(embds).isDefined)
       embds
     else if (new File(localPath).exists()) {
-      embds = WordEmbeddingsRetriever(localPath, dim, caseSensitive)
+      embds = new WordEmbeddingsRetriever(localPath, dim, caseSensitive)
       embds
     }
     else {
       val localFromClusterPath = SparkFiles.get(fileName)
       require(new File(localFromClusterPath).exists(), s"Embeedings not found under given ref." +
         s" Make sure they are properly loaded using EmbeddingsHelper and pointing towards 'embeddingsRef' param")
-      embds = WordEmbeddingsRetriever(localFromClusterPath, dim, caseSensitive)
+      embds = new WordEmbeddingsRetriever(localFromClusterPath, dim, caseSensitive)
       embds
     }
   }
+}
 
+class EmptyClusterWordEmbeddings extends ClusterWordEmbeddings("", 0, false) {
+  override def getLocalRetriever =  WordEmbeddingsRetriever.empty
 }
 
 object ClusterWordEmbeddings {
+
+  lazy val empty = new EmptyClusterWordEmbeddings()
 
   private def indexEmbeddings(sourceEmbeddingsPath: String,
                               localFile: String,

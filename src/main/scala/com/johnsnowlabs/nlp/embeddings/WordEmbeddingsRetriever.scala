@@ -4,7 +4,7 @@ import com.johnsnowlabs.nlp.util.LruMap
 import org.rocksdb._
 
 
-case class WordEmbeddingsRetriever(dbFile: String,
+class WordEmbeddingsRetriever(dbFile: String,
                                    nDims: Int,
                                    caseSensitive: Boolean,
                                    lruCacheSize: Int = 100000) extends AutoCloseable {
@@ -52,4 +52,21 @@ case class WordEmbeddingsRetriever(dbFile: String,
       prefetchedDB = null
     }
   }
+}
+
+class DummyWordEmbeddingsRetriever()
+  extends WordEmbeddingsRetriever("dummy", 0, false, 0) {
+
+  val result = Array.empty[Float]
+
+  override def getEmbeddingsVector(word: String): Array[Float] = {
+    result
+  }
+
+  override def containsEmbeddingsVector(word: String): Boolean = false
+
+}
+
+object WordEmbeddingsRetriever{
+  lazy val empty = new DummyWordEmbeddingsRetriever()
 }

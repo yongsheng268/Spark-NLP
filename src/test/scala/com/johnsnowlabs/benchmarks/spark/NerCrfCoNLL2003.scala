@@ -1,15 +1,15 @@
 package com.johnsnowlabs.benchmarks.spark
 
+import com.johnsnowlabs.benchmarks.jvm.NerCrfCoNLL2003.folder
 import com.johnsnowlabs.ml.crf.TextSentenceLabels
 import com.johnsnowlabs.nlp._
 import com.johnsnowlabs.nlp.annotators.Tokenizer
 import com.johnsnowlabs.nlp.annotators.common.Annotated.{NerTaggedSentence, PosTaggedSentence}
 import com.johnsnowlabs.nlp.annotators.common.{NerTagged, PosTagged, TaggedSentence}
 import com.johnsnowlabs.nlp.annotators.ner.crf.NerCrfApproach
-import com.johnsnowlabs.nlp.annotators.pos.perceptron.PerceptronApproachDistributed
+import com.johnsnowlabs.nlp.annotators.pos.perceptron.{PerceptronApproachDistributed, PerceptronModel}
 import com.johnsnowlabs.nlp.annotators.sbd.pragmatic.SentenceDetector
 import com.johnsnowlabs.nlp.datasets.CoNLL
-import com.johnsnowlabs.nlp.embeddings.WordEmbeddingsFormat
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs}
 import org.apache.spark.ml.{PipelineModel, PipelineStage}
 import org.apache.spark.sql.DataFrame
@@ -41,8 +41,7 @@ object CoNLL2003PipelineTest extends App {
       .setInputCols(Array("document"))
       .setOutputCol("token")
 
-    val posTagger = new PerceptronApproachDistributed()
-      .setNIterations(10)
+    val posTagger = PerceptronModel.pretrained()
       .setInputCols("token", "document")
       .setOutputCol("pos")
 
@@ -57,7 +56,6 @@ object CoNLL2003PipelineTest extends App {
     val nerTagger = new NerCrfApproach()
       .setInputCols("sentence", "token", "pos")
       .setLabelColumn("label")
-      .setExternalFeatures(ExternalResource("eng.train", ReadAs.LINE_BY_LINE, Map("delimiter" -> " ")))
       .setC0(2250000)
       .setRandomSeed(100)
       .setMaxEpochs(10)
@@ -208,9 +206,6 @@ object CoNLL2003PipelineTest extends App {
 
     model
   }
-
-  val posModel = measurePos()
-  posModel.write.overwrite().save("pos_model")
 
   val nerModel = measureNer()
   nerModel.write.overwrite().save("ner_model")
