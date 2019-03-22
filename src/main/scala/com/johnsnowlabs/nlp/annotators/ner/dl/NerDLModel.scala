@@ -25,6 +25,14 @@ class NerDLModel(override val uid: String)
   override val inputAnnotatorTypes = Array(DOCUMENT, TOKEN, WORD_EMBEDDINGS)
   override val outputAnnotatorType = NAMED_ENTITY
 
+  var tensorflow: TensorflowWrapper = _
+
+  def setTensorflow(wrapper: TensorflowWrapper) = {
+    this.tensorflow = wrapper
+    this
+  }
+
+
   val minProba = new FloatParam(this, "minProbe", "Minimum probability. Used only if there is no CRF on top of LSTM layer.")
   def setMinProbability(minProba: Float) = set(this.minProba, minProba)
 
@@ -81,8 +89,8 @@ trait ReadsNERGraph extends ParamsAndFeaturesReadable[NerDLModel] with ReadTenso
   override val tfFile = "tensorflow"
 
   def readNerGraph(instance: NerDLModel, path: String, spark: SparkSession): Unit = {
-    val tf = readTensorflowModel(path, spark, "_nerdl")
-    NerDLModel.setTensorflowSession(tf, instance)
+    instance.setTensorflow(readTensorflowModel(path, spark, "_nerdl"))
+    NerDLModel.setTensorflowSession(instance)
   }
 
   addReader(readNerGraph)
@@ -98,13 +106,10 @@ object NerDLModel extends ParamsAndFeaturesReadable[NerDLModel] with ReadsNERGra
 
   @transient private val tensorflowInstances = scala.collection.mutable.Map.empty[String, TensorflowNer]
 
-  @transient private var tensorflow: TensorflowWrapper = _
-
-  private[dl] def setTensorflowSession(tensorflowWrapper: TensorflowWrapper, instance: NerDLModel): TensorflowNer = {
+  private[dl] def setTensorflowSession(instance: NerDLModel): TensorflowNer = {
     val encoder = new NerDatasetEncoder(instance.getDatasetParams)
-    tensorflow = tensorflowWrapper
     val tensorflowNer = new TensorflowNer(
-      tensorflow,
+      instance.tensorflow,
       encoder,
       batchSize = 1, // Tensorflow doesn't clear state in batch
       Verbose.Silent)
@@ -115,7 +120,7 @@ object NerDLModel extends ParamsAndFeaturesReadable[NerDLModel] with ReadsNERGra
   private[dl] def getTensorflowSession(instance: NerDLModel): TensorflowWrapper = tensorflowInstances(instance.uid).tensorflow
 
   def getTensorflowNer(instance: NerDLModel): TensorflowNer = {
-    tensorflowInstances.getOrElseUpdate(instance.uid, setTensorflowSession(tensorflow, instance))
+    tensorflowInstances.getOrElseUpdate(instance.uid, setTensorflowSession(instance))
   }
 
   def clearTensorflowSession(instance: NerDLModel): Unit = {

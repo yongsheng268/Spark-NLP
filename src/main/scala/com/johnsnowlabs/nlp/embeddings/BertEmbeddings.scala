@@ -28,6 +28,12 @@ class BertEmbeddings(override val uid: String) extends
 
   val vocabulary: MapFeature[String, Int] = new MapFeature(this, "vocabulary")
 
+  var tensorflow: TensorflowWrapper = _
+  def setTensorflow(wrapper: TensorflowWrapper) = {
+    this.tensorflow = wrapper
+    this
+  }
+
   def setVocabulary(value: Map[String, Int]): this.type = set(vocabulary, value)
 
   def sentenceStartTokenId: Int = {
@@ -96,8 +102,8 @@ trait ReadBertTensorflowModel extends ReadTensorflowModel {
   override val tfFile: String = "bert_tensorflow"
 
   def readTensorflow(instance: BertEmbeddings, path: String, spark: SparkSession): Unit = {
-    val tf = readTensorflowModel(path, spark, "_bert_tf")
-    BertEmbeddings.setBertTensorflow(tf, instance)
+    instance.setTensorflow(readTensorflowModel(path, spark, "_bert_tf"))
+    BertEmbeddings.setBertTensorflow(instance)
   }
 
   addReader(readTensorflow)
@@ -116,8 +122,9 @@ trait ReadBertTensorflowModel extends ReadTensorflowModel {
 
     val bert = new BertEmbeddings()
       .setVocabulary(words)
+      .setTensorflow(wrapper)
 
-    BertEmbeddings.setBertTensorflow(wrapper, bert)
+    BertEmbeddings.setBertTensorflow(bert)
 
     bert
   }
@@ -129,12 +136,9 @@ object BertEmbeddings extends ParamsAndFeaturesReadable[BertEmbeddings]
 
   @transient private val tensorflowInstances = scala.collection.mutable.Map.empty[String, TensorflowBert]
 
-  @transient private var tensorflow: TensorflowWrapper = _
-
-  def setBertTensorflow(tensorflowWrapper: TensorflowWrapper, instance: BertEmbeddings): TensorflowBert = {
-    tensorflow = tensorflowWrapper
+  def setBertTensorflow(instance: BertEmbeddings): TensorflowBert = {
     val tensorflowBert = new TensorflowBert(
-      tensorflow,
+      instance.tensorflow,
       instance.sentenceStartTokenId,
       instance.sentenceEndTokenId,
       instance.getMaxSentenceLength)
@@ -143,7 +147,7 @@ object BertEmbeddings extends ParamsAndFeaturesReadable[BertEmbeddings]
   }
 
   def getBertTensorflow(instance: BertEmbeddings): TensorflowBert = {
-    tensorflowInstances.getOrElseUpdate(instance.uid, setBertTensorflow(tensorflow, instance))
+    tensorflowInstances.getOrElseUpdate(instance.uid, setBertTensorflow(instance))
   }
 
 }

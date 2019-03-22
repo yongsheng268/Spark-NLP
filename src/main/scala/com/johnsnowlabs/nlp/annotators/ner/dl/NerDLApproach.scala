@@ -112,7 +112,8 @@ class NerDLApproach(override val uid: String)
     val model = new NerDLModel()
       .setDatasetParams(ner.encoder.params)
       .setBatchSize($(batchSize))
-    NerDLModel.setTensorflowSession(tf, model)
+      .setTensorflow(tf)
+    NerDLModel.setTensorflowSession(model)
     model
   }
 }

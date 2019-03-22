@@ -74,10 +74,16 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
   private val eosScore = .01
   private val bosScore = 1.0
 
+  var tensorflow: TensorflowWrapper = _
+  def setTensorflow(wrapper: TensorflowWrapper) = {
+    this.tensorflow = wrapper
+    this
+  }
 
   /* reads the external TF model, keeping this until we can train from within spark */
   def readModel(path: String, spark: SparkSession, suffix: String, useBundle:Boolean): this.type = {
-    ContextSpellCheckerModel.setTensorflow(readTensorflowModel(path, spark, suffix, false, useBundle, tags = Array("our-graph")), this)
+    this.setTensorflow(readTensorflowModel(path, spark, suffix, false, useBundle, tags = Array("our-graph")))
+    ContextSpellCheckerModel.setTensorflow(this)
     this
   }
 
@@ -263,8 +269,8 @@ trait ReadsLanguageModelGraph extends ParamsAndFeaturesReadable[ContextSpellChec
   override val tfFile = "bigone"
 
   def readLanguageModelGraph(instance: ContextSpellCheckerModel, path: String, spark: SparkSession): Unit = {
-    val tf = readTensorflowModel(path, spark, "_langmodeldl")
-    ContextSpellCheckerModel.setTensorflow(tf, instance)
+    instance.setTensorflow(readTensorflowModel(path, spark, "_langmodeldl"))
+    ContextSpellCheckerModel.setTensorflow(instance)
   }
 
   addReader(readLanguageModelGraph)
@@ -279,16 +285,13 @@ object ContextSpellCheckerModel extends ReadsLanguageModelGraph with PretrainedS
 
   @transient private val tensorflowInstances = scala.collection.mutable.Map.empty[String, TensorflowSpell]
 
-  @transient private var tensorflow: TensorflowWrapper = _
-
   private[context] def getTensorflow(instance: ContextSpellCheckerModel): TensorflowSpell = {
-    tensorflowInstances.getOrElseUpdate(instance.uid, setTensorflow(tensorflow, instance))
+    tensorflowInstances.getOrElseUpdate(instance.uid, setTensorflow(instance))
   }
 
-  private[context] def setTensorflow(tf: TensorflowWrapper, instance: ContextSpellCheckerModel): TensorflowSpell = {
-    tensorflow = tf
+  private[context] def setTensorflow(instance: ContextSpellCheckerModel): TensorflowSpell = {
     val tensorflowSpell = new TensorflowSpell(
-      tensorflow,
+      instance.tensorflow,
       Verbose.Silent)
     tensorflowInstances.update(instance.uid, tensorflowSpell)
     tensorflowSpell

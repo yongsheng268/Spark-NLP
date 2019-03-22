@@ -121,9 +121,10 @@ class ContextSpellCheckerApproach(override val uid: String) extends
       setVocabTransducer(createTransducer(vocabFreq.keys.toList)).
       setSpecialClassesTransducers(specialClassesTransducers).
       setInputCols(getOrDefault(inputCols)).
-      setWordMaxDist($(wordMaxDistance))
+      setWordMaxDist($(wordMaxDistance)).
+      setTensorflow(tf)
 
-    ContextSpellCheckerModel.setTensorflow(tf, model)
+    ContextSpellCheckerModel.setTensorflow(model)
 
     get(weightedDistPath).map(path => model.setWeights(loadWeights(path))).
     getOrElse(model)
