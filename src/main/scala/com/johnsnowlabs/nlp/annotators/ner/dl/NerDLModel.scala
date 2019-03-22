@@ -89,8 +89,7 @@ trait ReadsNERGraph extends ParamsAndFeaturesReadable[NerDLModel] with ReadTenso
   override val tfFile = "tensorflow"
 
   def readNerGraph(instance: NerDLModel, path: String, spark: SparkSession): Unit = {
-    instance.setTensorflow(readTensorflowModel(path, spark, "_nerdl"))
-    NerDLModel.setTensorflowSession(instance)
+    NerDLModel.setTensorflowSession(readTensorflowModel(path, spark, "_nerdl"), instance)
   }
 
   addReader(readNerGraph)
@@ -106,9 +105,10 @@ object NerDLModel extends ParamsAndFeaturesReadable[NerDLModel] with ReadsNERGra
 
   @transient private val tensorflowInstances = scala.collection.mutable.Map.empty[String, TensorflowNer]
 
-  private[dl] def setTensorflowSession(instance: NerDLModel): TensorflowNer = {
+  private[dl] def setTensorflowSession(tf: TensorflowWrapper, instance: NerDLModel): TensorflowNer = {
+    if (instance.tensorflow == null) instance.setTensorflow(tf)
     val encoder = new NerDatasetEncoder(instance.getDatasetParams)
-    val tensorflowNer = new TensorflowNer(
+    @transient val tensorflowNer = new TensorflowNer(
       instance.tensorflow,
       encoder,
       batchSize = 1, // Tensorflow doesn't clear state in batch
@@ -120,7 +120,8 @@ object NerDLModel extends ParamsAndFeaturesReadable[NerDLModel] with ReadsNERGra
   private[dl] def getTensorflowSession(instance: NerDLModel): TensorflowWrapper = tensorflowInstances(instance.uid).tensorflow
 
   def getTensorflowNer(instance: NerDLModel): TensorflowNer = {
-    tensorflowInstances.getOrElseUpdate(instance.uid, setTensorflowSession(instance))
+    require(instance.tensorflow != null, "tensorflow in instance is NULL")
+    tensorflowInstances.getOrElseUpdate(instance.uid, setTensorflowSession(instance.tensorflow, instance))
   }
 
   def clearTensorflowSession(instance: NerDLModel): Unit = {

@@ -5,7 +5,7 @@ import com.johnsnowlabs.nlp.annotators.common.WordpieceEmbeddingsSentence
 class NerDatasetEncoder
 (
   val params: DatasetEncoderParams
-) {
+) extends Serializable {
 
   private val nonDefaultTags = params.tags
     .filter(_ != params.defaultTag)

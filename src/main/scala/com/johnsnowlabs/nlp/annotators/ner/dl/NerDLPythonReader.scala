@@ -88,8 +88,7 @@ object NerDLModelPythonReader {
 
     val m = new NerDLModel()
       .setDatasetParams(nerModel.encoder.params)
-      .setTensorflow(nerModel.tensorflow)
-    NerDLModel.setTensorflowSession(m)
+    NerDLModel.setTensorflowSession(nerModel.tensorflow, m)
     m
   }
 }
