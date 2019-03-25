@@ -25,12 +25,12 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
 
   override val tfFile: String = "bigone"
 
-  val transducer = new TransducerFeature(this, "mainVocabularyTransducer")
+  val transducer = new StructFeature[ITransducer[Candidate]](this, "mainVocabularyTransducer")
   def setVocabTransducer(trans:ITransducer[Candidate]): this.type = {
     set(transducer, trans)
   }
 
-  val specialTransducers = new TransducerSeqFeature(this, "specialClassesTransducers")
+  val specialTransducers = new ArrayFeature[SpecialClassParser](this, "specialClassesTransducers")
   def setSpecialClassesTransducers(transducers: Seq[SpecialClassParser]): this.type = {
     set(specialTransducers, transducers.toArray)
   }
@@ -93,15 +93,19 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
   def getModelIfNotSet: TensorflowSpell = _model.get.value
 
   def setModelIfNotSet(spark: SparkSession, tensorflow: TensorflowWrapper): this.type = {
-    if (_model.isEmpty) {
-      _model = Some(
+    println("CALLED RESET!!")
+
+    if (_model.isDefined)
+      _model.get.destroy()
+
+    _model = Some(
         spark.sparkContext.broadcast(
           new TensorflowSpell(
             tensorflow,
             Verbose.Silent)
         )
       )
-    }
+
     this
   }
 
