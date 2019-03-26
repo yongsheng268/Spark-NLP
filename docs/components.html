@@ -1059,6 +1059,7 @@ NerDLModel.pretrained()</code></pre>
                                         </div>
                                     </div>
                                 </div>
+                                <!--Begin Transformers-->
                                 <h2 class="section-title" id="transformers">Transformers</h2>
                                 <div>
                                     <h4 id="DocumentAssembler" class="section-block"> DocumentAssembler: Getting data
@@ -1473,6 +1474,196 @@ documentAssembler = new DocumentAssembler()
                                         </div>
                                     </div>
                                 </div>
+                                <!--Begin Training Datasets-->
+                                <h2 class="section-title" id="training">Training Datasets</h2>
+                                <div>
+                                    <h4 id="TrainPOS" class="section-block"> POS Dataset</h4>
+                                    <ul class="nav nav-tabs" role="tablist">
+                                        <li role="presentation" class="active"><a href="#python" aria-controls="home"
+                                                role="tab" data-toggle="tab">Python</a>
+                                        </li>
+                                        <li role="presentation"><a href="#scala" aria-controls="profile" role="tab"
+                                                data-toggle="tab">Scala</a></li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div role="tabpanel" class="tab-pane active" id="python">
+                                            <div class="code-block">
+                                                <p>
+                                                    In order to train a Part of Speech Tagger annotator, we need to get corpus data
+                                                    as a spark dataframe. There is a component that does this for us:
+                                                    it reades a plain text file and transforms it to a 
+                                                    spark dataset.
+                                                    <br><b>Example:</b><br>
+                                                    <b>Input File Format:</b> A|DT few|JJ months|NNS ago|RB you|PRP received|VBD
+                                                    a|DT
+                                                    letter|NN
+                                                </p>
+                                                <pre><code class="language-python">from sparknlp.training import POS
+train_pos = POS().readDataset(spark, "./src/main/resources/anc-pos-corpus")</code></pre>
+
+                                                <b>Available parameters are:</b>
+                                                <ul>
+                                                    <li>
+                                                        spark: Spark session
+                                                    </li>
+                                                    <li>
+                                                        path: path to file with corpus data for training POS
+                                                    </li>
+                                                    <li>
+                                                        delimiter: delimiter of token and postag (default "|")
+                                                    </li>
+                                                    <li>
+                                                        outputPosCol: name of the column with POS values (default "tags")
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <!--//code-block-->
+                                        </div>
+                                        <div role="tabpanel" class="tab-pane" id="scala">
+                                            <div class="code-block">
+                                                <p>
+                                                    In order to train a Part of Speech Tagger annotator, we need to get corpus data
+                                                    as a spark dataframe. There is a component that does this for us:
+                                                    it reades a plain text file and transforms it to a 
+                                                    spark dataset.
+                                                    <br><b>Example:</b><br>
+                                                    <b>Input File Format:</b> A|DT few|JJ months|NNS ago|RB you|PRP received|VBD
+                                                    a|DT
+                                                    letter|NN
+                                                </p>
+                                                <pre><code class="language-javascript">import com.johnsnowlabs.nlp.training.POS
+trainPOS = POS().readDataset(spark, "./src/main/resources/anc-pos-corpus")</code></pre>
+
+                                                <b>Available parameters are:</b>
+                                                <ul>
+                                                    <li>
+                                                        spark: Spark session
+                                                    </li>
+                                                    <li>
+                                                        path: path to file with corpus data for training POS
+                                                    </li>
+                                                    <li>
+                                                        delimiter: delimiter of token and postag (default "|")
+                                                    </li>
+                                                    <li>
+                                                        outputPosCol: name of the column with POS values (default "tags")
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <!--//code-block-->
+                                        </div>
+                                    </div>
+                                    <h4 id="TrainCoNLL" class="section-block"> Train CoNLL Dataset
+                                    </h4>
+                                    <ul class="nav nav-tabs" role="tablist">
+                                        <li role="presentation" class="active"><a href="#python" aria-controls="home"
+                                                role="tab" data-toggle="tab">Python</a>
+                                        </li>
+                                        <li role="presentation"><a href="#scala" aria-controls="profile" role="tab"
+                                                data-toggle="tab">Scala</a></li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div role="tabpanel" class="tab-pane active" id="python">
+                                            <div class="code-block">
+                                                <p>
+                                                    Once we have our NLP pipeline ready to go, we might want to use our
+                                                    annotation results somewhere else where it is easy to use. The
+                                                    Finisher
+                                                    outputs annotation(s) values into string.
+                                                    <br><b>Example:</b><br>
+                                                </p>
+                                                <pre><code class="language-python">finisher = Finisher() \
+  .setInputCols(["sentiment"]) \
+  .setIncludeMetadata(True)
+</code></pre>
+
+                                                <b>Settable parameters are:</b>
+                                                <ul>
+                                                    <li>
+                                                        setInputCols()
+                                                    </li>
+                                                    <li>
+                                                        setOutputCols()
+                                                    </li>
+                                                    <li>
+                                                        setCleanAnnotations(True) -> Whether to remove intermediate
+                                                        annotations
+                                                    </li>
+                                                    <li>
+                                                        setValueSplitSymbol("#") -> split values within an annotation
+                                                        character
+                                                    </li>
+                                                    <li>
+                                                        setAnnotationSplitSymbol("@") -> split values between
+                                                        annotations
+                                                        character
+                                                    </li>
+                                                    <li>
+                                                        setIncludeMetadata(False) -> Whether to include metadata keys.
+                                                        Sometimes
+                                                        useful in some annotations
+                                                    </li>
+                                                    <li>
+                                                        setOutputAsArray(False) -> Whether to output as Array. Useful as
+                                                        input for other Spark transformers.
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <!--//code-block-->
+                                        </div>
+                                        <div role="tabpanel" class="tab-pane" id="scala">
+                                            <div class="code-block">
+                                                <p>
+
+
+                                                    Once we have our NLP pipeline ready to go, we might want to use our
+                                                    annotation results somewhere else where it is easy to use. The
+                                                    Finisher
+                                                    outputs annotation(s) values into string.
+                                                    <br><b>Example:</b><br>
+                                                </p>
+                                                <pre><code class="language-javascript">val finisher = new Finisher()
+  .setInputCols("token")
+  .setIncludeMetadata(true)
+</code></pre>
+
+                                                <b>Settable parameters are:</b>
+                                                <ul>
+                                                    <li>
+                                                        setInputCols()
+                                                    </li>
+                                                    <li>
+                                                        setOutputCols()
+                                                    </li>
+                                                    <li>
+                                                        setCleanAnnotations(true) -> Whether to remove intermediate
+                                                        annotations
+                                                    </li>
+                                                    <li>
+                                                        setValueSplitSymbol("#") -> split values within an annotation
+                                                        character
+                                                    </li>
+                                                    <li>
+                                                        setAnnotationSplitSymbol("@") -> split values between
+                                                        annotations
+                                                        character
+                                                    </li>
+                                                    <li>
+                                                        setIncludeMetadata(False) -> Whether to include metadata keys.
+                                                        Sometimes
+                                                        useful in some annotations
+                                                    </li>
+                                                    <li>
+                                                        setOutputAsArray(false) -> Whether to output as Array. Useful as
+                                                        input for other Spark transformers.
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <!--//code-block-->
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--Begin Annotators-->
                                 <h2 class="section-title" id="annotators">Annotators</h2>
                                 <div>
                                     <h4 id="Tokenizer" class="section-block">Tokenizer: Word tokens</h4>
@@ -3465,14 +3656,24 @@ documentAssembler = new DocumentAssembler()
                                     <ul class="nav doc-sub-menu">
                                         <li><a class="scrollto" href="#DocumentAssembler">Document Assembler</a></li>
                                         <li><a class="scrollto" href="#TokenAssembler">Token Assembler</a></li>
+                                        <li><a class="scrollto" href="#Doc2Chunk">Doc2Chunk</a></li>
+                                        <li><a class="scrollto" href="#Chunk2Doc">Chunk2Doc</a></li>
                                         <li><a class="scrollto" href="#Finisher">Finisher</a></li>
-
                                     </ul>
                                     <!--//nav-->
                                 </li>
                                 <li>
                                     <input type="checkbox" class="collapsable" id="ii5">
-                                    <label class="hover-label" for="ii5">Annotators</label>
+                                    <label class="hover-label" for="ii5">Training Datasets</label>
+                                    <ul class="nav doc-sub-menu">
+                                        <li><a class="scrollto" href="#TrainPOS">POS</a></li>
+                                        <li><a class="scrollto" href="#TrainCoNLL">CoNLL</a></li>
+                                    </ul>
+                                    <!--//nav-->
+                                </li>
+                                <li>
+                                    <input type="checkbox" class="collapsable" id="ii6">
+                                    <label class="hover-label" for="ii6">Annotators</label>
                                     <ul class="nav doc-sub-menu">
                                         <li><a class="scrollto" href="#Tokenizer">Tokenizer</a></li>
                                         <li><a class="scrollto" href="#Normalizer">Normalizer</a></li>
@@ -3500,8 +3701,8 @@ documentAssembler = new DocumentAssembler()
                                     <!--//nav-->
                                 </li>
                                 <li style="padding-bottom: 75px">
-                                    <input type="checkbox" class="collapsable" id="ii6">
-                                    <label class="hover-label" for="ii6">License and feedback</label>
+                                    <input type="checkbox" class="collapsable" id="ii7">
+                                    <label class="hover-label" for="ii7">License and feedback</label>
                                     <ul class="nav doc-sub-menu">
                                         <li><a class="link" href="contribute.html">Feedback & Contribute</a></li>
                                         <li><a class="link" href="license.html">Licence information</a></li>
