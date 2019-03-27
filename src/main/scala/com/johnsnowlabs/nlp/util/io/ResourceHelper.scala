@@ -91,6 +91,10 @@ object ResourceHelper {
     dirURL
   }
 
+  def getResourceAsFilePath(path: String): String = {
+    getResourceFile(path).getFile
+  }
+
   def listResourceDirectory(path: String): Seq[String] = {
     val dirURL = getResourceFile(path)
 

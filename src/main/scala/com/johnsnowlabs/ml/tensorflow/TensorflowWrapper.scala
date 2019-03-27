@@ -132,7 +132,7 @@ object TensorflowWrapper extends LoadsContrib {
     }
 
     // 4. Remove tmp folder
-    FileHelper.delete(tmpFolder)
+    //FileHelper.delete(tmpFolder)
     t.clearTensors()
 
     new TensorflowWrapper(session, graph)

@@ -8,6 +8,7 @@ import com.johnsnowlabs.nlp.annotators.ner.dl.LoadsContrib
 import com.johnsnowlabs.util.FileHelper
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.spark.{SparkException, SparkFiles}
 import org.apache.spark.sql.SparkSession
 
 /**
@@ -66,8 +67,19 @@ trait ReadTensorflowModel extends LoadsContrib {
     val tf = TensorflowWrapper.read(new Path(tmpFolder, tfFile).toString,
       zipped, tags = tags, useBundle = useBundle)
 
+    println(s"ADDING FILE ${tfFile}")
+    val destination = new Path(tmpFolder, tfFile).toString
+
+    val destinationScheme = new Path(destination).getFileSystem(spark.sparkContext.hadoopConfiguration).getScheme
+    lazy val target = Paths.get(SparkFiles.getRootDirectory(), tfFile).toString
+    if (destinationScheme == "file")
+      new File(destination).renameTo(new File(target))
+    else
+      spark.sparkContext.addFile(destination)
+
+
     // 4. Remove tmp folder
-    FileHelper.delete(tmpFolder)
+    //FileHelper.delete(tmpFolder)
 
     tf
   }

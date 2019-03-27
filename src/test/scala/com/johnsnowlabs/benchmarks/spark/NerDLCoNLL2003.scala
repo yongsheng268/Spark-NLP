@@ -76,13 +76,13 @@ object NerDLPipeline extends App {
   }
 
   def measure(model: PipelineModel, file: ExternalResource, extended: Boolean = true, errorsToPrint: Int = 0): Unit = {
-    val ner = model.stages.filter(s => s.isInstanceOf[NerDLModel]).head.asInstanceOf[NerDLModel].getModelIfNotSet
+    val ner = model.stages.filter(s => s.isInstanceOf[NerDLModel]).head.asInstanceOf[NerDLModel]
     val df = nerReader.readDataset(SparkAccessor.benchmarkSpark, file.path).toDF()
     val transformed = model.transform(df)
 
     val labeled = NerTagged.collectTrainingInstances(transformed, Seq("sentence", "token", "glove"), "label")
 
-    ner.measure(labeled, (s: String) => System.out.println(s), extended, errorsToPrint)
+    ner.getModelIfNotSet.measure(labeled, (s: String) => System.out.println(s), extended, errorsToPrint)
   }
 
   val spark = SparkAccessor.benchmarkSpark

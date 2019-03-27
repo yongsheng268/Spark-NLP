@@ -1,6 +1,8 @@
 package com.johnsnowlabs.nlp.annotators.ner.dl
 
 import java.io.File
+import java.nio.file.{Files, Paths}
+import java.util.UUID
 
 import com.johnsnowlabs.ml.tensorflow._
 import com.johnsnowlabs.nlp.AnnotatorApproach
@@ -8,8 +10,11 @@ import com.johnsnowlabs.nlp.AnnotatorType.{DOCUMENT, NAMED_ENTITY, TOKEN, WORD_E
 import com.johnsnowlabs.nlp.annotators.common.{NerTagged, WordpieceEmbeddingsSentence}
 import com.johnsnowlabs.nlp.annotators.ner.{NerApproach, Verbose}
 import com.johnsnowlabs.nlp.util.io.ResourceHelper
-import org.apache.commons.io.IOUtils
+import com.johnsnowlabs.util.ZipArchiveUtil
+import org.apache.commons.io.{FileUtils, IOUtils}
 import org.apache.commons.lang.SystemUtils
+import org.apache.hadoop.fs.Path
+import org.apache.spark.SparkFiles
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{DefaultParamsReadable, Identifiable}
@@ -120,10 +125,21 @@ class NerDLApproach(override val uid: String)
         throw e
     }
 
-    new NerDLModel()
+    val model = new NerDLModel()
+      .setTensorflow(tf)
       .setDatasetParams(ner.encoder.params)
       .setBatchSize($(batchSize))
-      .setModelIfNotSet(dataset.sparkSession, tf)
+
+    val destinationScheme = new Path("tensorflow").getFileSystem(dataset.sparkSession.sparkContext.hadoopConfiguration).getScheme
+    lazy val target = Paths.get(SparkFiles.getRootDirectory(), "tensorflow").toString
+    tf.saveToFile("/tmp/tensorflow")
+    if (destinationScheme == "file")
+      new File("/tmp/tensorflow").renameTo(new File(target))
+    else
+      dataset.sparkSession.sparkContext.addFile("/tmp/tensorflow")
+    new File("/tmp/tensorflow")
+
+    model
   }
 }
 
