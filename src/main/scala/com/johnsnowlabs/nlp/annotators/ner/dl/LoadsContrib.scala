@@ -51,19 +51,19 @@ trait LoadsContrib {
   protected def loadContribToCluster(spark: SparkSession): Unit = {
     /** NOT thread-safe. DRIVER only*/
     if (!LoadsContrib.loadedToCluster && contribPaths.isDefined) {
-      println(s"adding ${contribPaths.get}")
-      LoadsContrib.loadedToCluster = true
-      spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._1).getPath)
-      spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._2).getPath)
+      //println(s"adding ${contribPaths.get}")
+      //LoadsContrib.loadedToCluster = true
+      //spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._1).getPath)
+      //spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._2).getPath)
     }
   }
 
   protected def loadContribToTensorflow(): Unit = {
     if (!LoadsContrib.loadedToTensorflow && contribPaths.isDefined) {
-      println("loading to tensorflow")
+      //println("loading to tensorflow")
       LoadsContrib.loadedToTensorflow = true
-      TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._1)))
-      TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._2)))
+      //TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._1)))
+      //TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._2)))
     }
   }
 

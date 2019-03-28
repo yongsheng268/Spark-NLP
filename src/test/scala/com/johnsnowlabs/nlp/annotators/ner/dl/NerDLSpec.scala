@@ -68,7 +68,7 @@ class NerDLSpec extends FlatSpec {
 
   "NerDLApproach" should "correct search for suitable graphs" in {
     val smallGraphFile = NerDLApproach.searchForSuitableGraph(10, 100, 100)
-    assert(smallGraphFile.endsWith("blstm_10_100_128_100.pb") || smallGraphFile.endsWith("blstm-noncontrib_10_100_128_100.pb"))
+    assert(smallGraphFile.endsWith("blstm_10_100_128_100.pb") || smallGraphFile.endsWith("blstm_10_100_128_100.pb"))
 
     val bigGraphFile = NerDLApproach.searchForSuitableGraph(25, 300, 100)
     assert(bigGraphFile.endsWith("blstm_25_300_128_100.pb") || bigGraphFile.endsWith("blstm-noncontrib_25_300_128_100.pb"))
