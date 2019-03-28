@@ -2746,7 +2746,89 @@ trainCorpus.select(trainCorpus.col("value").as("text"))</code></pre>
                                             <!--//code-block-->
                                         </div>
                                     </div>
-
+                                    <!--Begin Word Embeddings-->
+                                    <h4 id="WordEmbeddings" class="section-block"> Word Embeddings</h4>
+                                        <ul class="nav nav-tabs" role="tablist">
+                                            <li role="presentation" class="active"><a href="#python" aria-controls="home"
+                                                    role="tab" data-toggle="tab">Python</a>
+                                            </li>
+                                            <li role="presentation"><a href="#scala" aria-controls="profile" role="tab"
+                                                    data-toggle="tab">Scala</a></li>
+                                        </ul>
+                                        <div class="tab-content">
+                                            <div role="tabpanel" class="tab-pane active" id="python">
+                                                <div class="code-block">
+                                                    <p>
+                                                        Word Embeddings lookup annotator that maps tokens to vectors
+                                                        <br>
+                                                        <b>Type:</b> Word Embeddings<br>
+                                                        <b>Requires:</b> Document, Token<br>
+                                                        <b>Functions:</b> <br>
+                                                        <ul>
+                                                            <li>
+                                                                setEmbeddingsSource:(path, nDims, format) - sets <a
+                                                                    href="https://en.wikipedia.org/wiki/Word_embedding">word
+                                                                    embeddings</a> options.
+                                                                path - word embeddings file
+                                                                nDims - number of word embeddings dimensions
+                                                                format - format of word embeddings files:<br>
+                                                                1 - spark-nlp format. <br>
+                                                                2 - text. This format is usually used by <a
+                                                                    href="https://nlp.stanford.edu/projects/glove/">Glove</a><br>
+                                                                3 - binary. This format is usually used by <a
+                                                                    href="https://code.google.com/archive/p/word2vec/">Word2Vec</a>
+                                                            </li>
+                                                            <li>
+                                                                setCaseSensitive: whether to ignore case in tokens for embeddings matching
+                                                            </li>    
+                                                        </ul>
+                                                        <b>Example:</b><br>
+                                                    </p>
+                                                    <pre><code class="language-python">word_embeddings = WordEmbeddings() \
+      .setInputCols(["document", "token"])\
+      .setOutputCol("word_embeddings")
+      .setEmbeddingsSource('./embeddings.100d.test.txt', 100, 2)</code></pre>
+                                                </div>
+                                                <!--//code-block-->
+                                            </div>
+                                            <div role="tabpanel" class="tab-pane" id="scala">
+                                                <div class="code-block">
+                                                    <p>
+                                                        Word Embeddings lookup annotator that maps tokens to vectors<br>
+                                                        <b>Type:</b> Word Embeddings<br>
+                                                        <b>Requires:</b> Document, Token<br>
+                                                        <b>Functions:</b> <br>
+                                                        <ul>
+                                                            <li>
+                                                                setEmbeddingsSource:(path, nDims, format) - sets <a
+                                                                    href="https://en.wikipedia.org/wiki/Word_embedding">word
+                                                                    embeddings</a> options.
+                                                                path - word embeddings file
+                                                                nDims - number of word embeddings dimensions
+                                                                format - format of word embeddings files:<br>
+                                                                1 - spark-nlp format. <br>
+                                                                2 - text. This format is usually used by <a
+                                                                    href="https://nlp.stanford.edu/projects/glove/">Glove</a><br>
+                                                                3 - binary. This format is usually used by <a
+                                                                    href="https://code.google.com/archive/p/word2vec/">Word2Vec</a>
+                                                            </li>
+                                                            <li>
+                                                                setCaseSensitive: whether to ignore case in tokens for embeddings matching
+                                                            </li>
+                                                        </ul>
+                                                        <b>Example:</b><br>
+                                                    </p>
+                                                    <pre><code class="language-javascript">wordEmbeddings = new WordEmbeddings()
+      .setInputCols("document", "token")
+      .setOutputCol("word_embeddings")
+      .setEmbeddingsSource("./embeddings.100d.test.txt",
+      100, WordEmbeddingsFormat.TEXT)
+      </code></pre>
+                                                </div>
+                                                <!--//code-block-->
+                                            </div>
+                                        </div>
+    
                                     <h4 id="NERCRF" class="section-block"> Named Entity Recognition CRF
                                         annotator</h4>
                                     <ul class="nav nav-tabs" role="tablist">
@@ -3638,6 +3720,7 @@ trainCorpus.select(trainCorpus.col("value").as("text"))</code></pre>
                                                 Detector</a></li>
                                         <li><a class="scrollto" href="#SentimentDetector">Rule based Sentiment
                                                 Detector</a></li>
+                                        <li><a class="scrollto" href="#WordEmbeddings">Word Embeddings</a></li>                
                                         <li><a class="scrollto" href="#NERCRF">Named Entity Recognition CRF</a></li>
                                         <li><a class="scrollto" href="#NerDL">Named Entity Recognition DL</a></li>
                                         <li><a class="scrollto" href="#SpellChecker">Norvig Spell Checker</a></li>
