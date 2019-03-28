@@ -30,7 +30,7 @@ package object annotator {
   object DateMatcher extends DefaultParamsReadable[DateMatcher]
 
   type TextMatcher = com.johnsnowlabs.nlp.annotators.TextMatcher
-  object TextMatcher extends DefaultParamsReadable[TextMatcher]
+  object ensorTextMatcher extends DefaultParamsReadable[TextMatcher]
   type TextMatcherModel = com.johnsnowlabs.nlp.annotators.TextMatcherModel
   object TextMatcherModel extends ParamsAndFeaturesReadable[TextMatcherModel]
 
