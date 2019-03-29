@@ -53,8 +53,8 @@ trait LoadsContrib {
     if (!LoadsContrib.loadedToCluster && contribPaths.isDefined) {
       println(s"adding ${contribPaths.get}")
       LoadsContrib.loadedToCluster = true
-      spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._1).getPath)
-      spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._2).getPath)
+      //spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._1).getPath)
+      //spark.sparkContext.addFile(copyResourceToTmp(contribPaths.get._2).getPath)
     }
   }
 
@@ -62,8 +62,8 @@ trait LoadsContrib {
     if (!LoadsContrib.loadedToTensorflow && contribPaths.isDefined) {
       println("loading to tensorflow")
       LoadsContrib.loadedToTensorflow = true
-      TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._1)))
-      TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._2)))
+      //TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._1)))
+      //TensorFlow.loadLibrary(SparkFiles.get(getFileName(contribPaths.get._2)))
     }
   }
 
