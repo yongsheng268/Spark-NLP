@@ -1,14 +1,17 @@
 package com.johnsnowlabs.nlp.annotators.spell.context
 
 import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.Paths
 
 import com.github.liblevenshtein.transducer.{Algorithm, Candidate}
 import com.github.liblevenshtein.transducer.factory.TransducerBuilder
-import com.johnsnowlabs.ml.tensorflow.TensorflowWrapper
+import com.johnsnowlabs.ml.tensorflow.{HandleTensorflow, TensorflowWrapper}
 import com.johnsnowlabs.nlp.annotators.common.{PrefixedToken, SuffixedToken}
 import com.johnsnowlabs.nlp.annotators.spell.context.parser._
 import com.johnsnowlabs.nlp.serialization.ArrayFeature
 import com.johnsnowlabs.nlp.{AnnotatorApproach, AnnotatorType, HasFeatures}
+import org.apache.hadoop.fs.Path
+import org.apache.spark.SparkFiles
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.param.{IntParam, Param}
 import org.apache.spark.ml.util.Identifiable
@@ -120,12 +123,16 @@ class ContextSpellCheckerApproach(override val uid: String) extends
       setClasses(classes).
       setVocabTransducer(createTransducer(vocabFreq.keys.toList)).
       setSpecialClassesTransducers(specialClassesTransducers).
-      setModelIfNotSet(dataset.sparkSession, tf).
+      setTensorflow(tf).
       setInputCols(getOrDefault(inputCols)).
       setWordMaxDist($(wordMaxDistance))
 
-    get(weightedDistPath).map(path => model.setWeights(loadWeights(path))).
-    getOrElse(model)
+    /** Making this graph available in all nodes */
+    HandleTensorflow.sendToCluster(dataset.sparkSession, tf, model.uid)
+
+    get(weightedDistPath)
+      .map(path => model.setWeights(loadWeights(path)))
+      .getOrElse(model)
   }
 
   private def loadVocab(path: String) = {

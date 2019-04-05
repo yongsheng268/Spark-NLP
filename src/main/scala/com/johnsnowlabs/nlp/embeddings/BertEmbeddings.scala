@@ -10,16 +10,16 @@ import com.johnsnowlabs.nlp.embeddings.BertEmbeddings.{addReader, readTensorflow
 import com.johnsnowlabs.nlp.pretrained.ResourceDownloader
 import com.johnsnowlabs.nlp.serialization.MapFeature
 import com.johnsnowlabs.nlp.util.io.{ExternalResource, ReadAs, ResourceHelper}
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.param.IntParam
 import org.apache.spark.ml.util.Identifiable
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 
 
 class BertEmbeddings(override val uid: String) extends
   AnnotatorModel[BertEmbeddings]
   with WriteTensorflowModel
   with HasEmbeddings
+  with HandleTensorflow[TensorflowBert]
 {
 
   def this() = this(Identifiable.randomUID("BERT_EMBEDDINGS"))
@@ -50,29 +50,21 @@ class BertEmbeddings(override val uid: String) extends
   def setMaxSentenceLength(value: Int): this.type = set(maxSentenceLength, value)
   def getMaxSentenceLength: Int = $(maxSentenceLength)
 
-  private var _model: Option[Broadcast[TensorflowBert]] = None
-
   def getModelIfNotSet: TensorflowBert = {
-    _model.get.value
-  }
+    if (_model == null) {
 
-  def setModelIfNotSet(spark: SparkSession, tensorflow: TensorflowWrapper): this.type = {
-    if (_model.isEmpty) {
-
-      _model = Some(
-        spark.sparkContext.broadcast(
+      _model =
           new TensorflowBert(
           tensorflow,
           sentenceStartTokenId,
           sentenceEndTokenId,
           $(maxSentenceLength)
-          )
-        )
       )
     }
 
-    this
+    _model
   }
+
   def tokenize(sentences: Seq[Sentence]): Seq[WordpieceTokenizedSentence] = {
     val basicTokenizer = new BasicTokenizer($(caseSensitive))
     val encoder = new WordpieceEncoder($$(vocabulary))
@@ -82,6 +74,15 @@ class BertEmbeddings(override val uid: String) extends
       val wordpieceTokens = tokens.flatMap(token => encoder.encode(token))
       WordpieceTokenizedSentence(wordpieceTokens)
     }
+  }
+
+  override def beforeAnnotate(dataset: Dataset[_]): Dataset[_] = {
+    dataset.foreachPartition(_ => {
+      getModelIfNotSet
+    })
+
+
+    dataset
   }
 
   /**
@@ -121,7 +122,7 @@ trait ReadBertTensorflowModel extends ReadTensorflowModel {
 
   def readTensorflow(instance: BertEmbeddings, path: String, spark: SparkSession): Unit = {
     val tf = readTensorflowModel(path, spark, "_bert_tf")
-    instance.setModelIfNotSet(spark, tf)
+    instance.setTensorflow(tf)
   }
 
   addReader(readTensorflow)
@@ -139,7 +140,7 @@ trait ReadBertTensorflowModel extends ReadTensorflowModel {
     val words = ResourceHelper.parseLines(vocabResource).zipWithIndex.toMap
 
     new BertEmbeddings()
-      .setModelIfNotSet(spark, wrapper)
+      .setTensorflow(wrapper)
       .setVocabulary(words)
   }
 }

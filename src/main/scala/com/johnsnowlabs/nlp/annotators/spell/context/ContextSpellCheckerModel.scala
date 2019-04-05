@@ -7,7 +7,6 @@ import com.johnsnowlabs.nlp.serialization._
 import com.johnsnowlabs.nlp._
 import com.johnsnowlabs.nlp.annotators.spell.context.parser.SpecialClassParser
 import com.johnsnowlabs.nlp.pretrained.ResourceDownloader
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.ml.param.{BooleanParam, FloatParam, IntParam}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, SparkSession}
@@ -19,6 +18,7 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
   with WeightedLevenshtein
   with WriteTensorflowModel
   with ParamsAndFeaturesWritable
+  with HandleTensorflow[TensorflowSpell]
   with HasTransducerFeatures {
 
   private val logger = LoggerFactory.getLogger("ContextSpellCheckerModel")
@@ -85,24 +85,16 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
       useBundle,
       tags = Array("our-graph")
     )
-    setModelIfNotSet(spark, tf)
+    setTensorflow(tf)
   }
 
-  private var _model: Option[Broadcast[TensorflowSpell]] = None
-
-  def getModelIfNotSet: TensorflowSpell = _model.get.value
-
-  def setModelIfNotSet(spark: SparkSession, tensorflow: TensorflowWrapper): this.type = {
-    if (_model.isEmpty) {
-      _model = Some(
-        spark.sparkContext.broadcast(
-          new TensorflowSpell(
+  def getModelIfNotSet: TensorflowSpell = {
+    if (_model == null) {
+      _model = new TensorflowSpell(
             tensorflow,
             Verbose.Silent)
-        )
-      )
     }
-    this
+    _model
   }
 
   /* trellis goes like (label, weight, candidate)*/
@@ -204,7 +196,11 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
   }
 
   override def beforeAnnotate(dataset: Dataset[_]): Dataset[_] = {
-    require(_model.isDefined, "Tensorflow model has not been initialized")
+
+    dataset.foreachPartition(_ => {
+      getModelIfNotSet
+    })
+
     dataset
   }
 
@@ -293,7 +289,7 @@ trait ReadsLanguageModelGraph extends ParamsAndFeaturesReadable[ContextSpellChec
 
   def readLanguageModelGraph(instance: ContextSpellCheckerModel, path: String, spark: SparkSession): Unit = {
     val tf = readTensorflowModel(path, spark, "_langmodeldl")
-    instance.setModelIfNotSet(spark, tf)
+    instance.setTensorflow(tf)
   }
 
   addReader(readLanguageModelGraph)
