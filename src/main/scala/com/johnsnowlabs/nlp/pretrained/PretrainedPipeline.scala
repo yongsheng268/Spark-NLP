@@ -10,10 +10,10 @@ case class PretrainedPipeline(
                                source: String = ResourceDownloader.publicLoc
                              ) {
 
-  lazy val model: PipelineModel = ResourceDownloader
+  val model: PipelineModel = ResourceDownloader
     .downloadPipeline(downloadName, Option(language), source)
 
-  lazy val lightModel = new LightPipeline(model)
+  val lightModel = new LightPipeline(model)
 
   def annotate(dataset: DataFrame, inputColumn: String): DataFrame = {
     model

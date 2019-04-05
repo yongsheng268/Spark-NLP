@@ -5,18 +5,18 @@ import java.nio.file.Paths
 
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkFiles
-import org.apache.spark.ml.param.Params
 import org.apache.spark.sql.SparkSession
 
-trait HandleTensorflow[T] extends Params {
+trait HandleTensorflow[T] {
 
   @transient @volatile private var tensorflow: TensorflowWrapper = _
   @transient @volatile private var model: T = _
+  protected val uid: String
 
   final protected def getTensorflowIfNotSet: TensorflowWrapper = {
     if (!isTensorflowSet) {
       println("TENSORFLOW IS NULL IN GET TENSORFLOW")
-      val fileName = "tensorflow_"+this.uid
+      val fileName = "tensorflow_"+uid
       val target = Paths.get(SparkFiles.getRootDirectory(), fileName).toString
       val path = if (new File(target).exists()) target else SparkFiles.get(fileName)
       setTensorflow(TensorflowWrapper.read(path, loadContrib=true))
@@ -24,7 +24,7 @@ trait HandleTensorflow[T] extends Params {
     tensorflow
   }
 
-  final protected def getModel: T= {
+  final protected def getModel: T = {
     if (!isTensorflowSet)
       getTensorflowIfNotSet
     if (!isModelSet)
