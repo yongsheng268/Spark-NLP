@@ -51,18 +51,17 @@ class BertEmbeddings(override val uid: String) extends
   def getMaxSentenceLength: Int = $(maxSentenceLength)
 
   def getModelIfNotSet: TensorflowBert = {
-    if (_model == null) {
+    if (!isModelSet) {
 
-      _model =
-          new TensorflowBert(
-          tensorflow,
+      setModel(new TensorflowBert(
+          getTensorflowIfNotSet,
           sentenceStartTokenId,
           sentenceEndTokenId,
           $(maxSentenceLength)
-      )
+      ))
     }
 
-    _model
+    getModel
   }
 
   def tokenize(sentences: Seq[Sentence]): Seq[WordpieceTokenizedSentence] = {
@@ -121,7 +120,7 @@ trait ReadBertTensorflowModel extends ReadTensorflowModel {
   override val tfFile: String = "bert_tensorflow"
 
   def readTensorflow(instance: BertEmbeddings, path: String, spark: SparkSession): Unit = {
-    val tf = readTensorflowModel(path, spark, "_bert_tf")
+    val tf = readTensorflowModel(path, spark, instance.uid)
     instance.setTensorflow(tf)
   }
 

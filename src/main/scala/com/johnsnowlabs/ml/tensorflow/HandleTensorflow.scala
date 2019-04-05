@@ -10,24 +10,43 @@ import org.apache.spark.sql.SparkSession
 
 trait HandleTensorflow[T] extends Params {
 
-  @transient @volatile protected var tensorflow: TensorflowWrapper = null
-  @transient @volatile protected var _model: T = null.asInstanceOf[T]
+  @transient @volatile private var tensorflow: TensorflowWrapper = _
+  @transient @volatile private var model: T = _
 
   final protected def getTensorflowIfNotSet: TensorflowWrapper = {
-    if (tensorflow == null) {
+    if (!isTensorflowSet) {
       println("TENSORFLOW IS NULL IN GET TENSORFLOW")
       val fileName = "tensorflow_"+this.uid
       val target = Paths.get(SparkFiles.getRootDirectory(), fileName).toString
       val path = if (new File(target).exists()) target else SparkFiles.get(fileName)
-      setTensorflow(TensorflowWrapper.read(path, loadContrib=true))
+      setTensorflow(TensorflowWrapper.read(path, zipped=false, loadContrib=true))
     }
     tensorflow
+  }
+
+  final protected def getModel: T= {
+    if (!isTensorflowSet)
+      getTensorflowIfNotSet
+    if (!isModelSet)
+      throw new Exception(s"Requested a TensorflowModel for $this which has not been set")
+    model
+  }
+
+  final protected def setModel(model: T): Unit = {
+    getTensorflowIfNotSet
+    if (!isModelSet) {
+      this.model = model
+    }
   }
 
   def setTensorflow(tf: TensorflowWrapper): this.type = {
     this.tensorflow = tf
     this
   }
+
+  def isTensorflowSet: Boolean = tensorflow != null
+
+  def isModelSet: Boolean = model != null
 
   def getModelIfNotSet: T
 }

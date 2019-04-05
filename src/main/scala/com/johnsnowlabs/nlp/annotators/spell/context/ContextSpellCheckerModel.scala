@@ -80,7 +80,7 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
     val tf = readTensorflowModel(
       path,
       spark,
-      suffix,
+      this.uid,
       zipped=false,
       useBundle,
       tags = Array("our-graph")
@@ -89,12 +89,11 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
   }
 
   def getModelIfNotSet: TensorflowSpell = {
-    if (_model == null) {
-      _model = new TensorflowSpell(
-            tensorflow,
+    setModel(new TensorflowSpell(
+            getTensorflowIfNotSet,
             Verbose.Silent)
-    }
-    _model
+    )
+    getModel
   }
 
   /* trellis goes like (label, weight, candidate)*/
@@ -288,7 +287,7 @@ trait ReadsLanguageModelGraph extends ParamsAndFeaturesReadable[ContextSpellChec
   override val tfFile = "bigone"
 
   def readLanguageModelGraph(instance: ContextSpellCheckerModel, path: String, spark: SparkSession): Unit = {
-    val tf = readTensorflowModel(path, spark, "_langmodeldl")
+    val tf = readTensorflowModel(path, spark, instance.uid)
     instance.setTensorflow(tf)
   }
 

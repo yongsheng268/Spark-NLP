@@ -46,7 +46,7 @@ trait ReadTensorflowModel extends LoadsContrib {
   def readTensorflowModel(
                            path: String,
                            spark: SparkSession,
-                           suffix: String,
+                           uid: String,
                            zipped:Boolean = true,
                            useBundle:Boolean = false,
                            tags:Array[String]=Array.empty,
@@ -59,7 +59,7 @@ trait ReadTensorflowModel extends LoadsContrib {
     val fs = FileSystem.get(uri, spark.sparkContext.hadoopConfiguration)
 
     // 1. Create tmp directory
-    val tmpFolder = Files.createTempDirectory(UUID.randomUUID().toString.takeRight(12)+ suffix)
+    val tmpFolder = Files.createTempDirectory(UUID.randomUUID().toString.takeRight(12)+ uid)
       .toAbsolutePath.toString
 
     // 2. Copy to local dir
@@ -70,14 +70,7 @@ trait ReadTensorflowModel extends LoadsContrib {
       zipped, tags = tags, useBundle = useBundle, loadContrib=loadContrib)
 
     println(s"ADDING FILE ${tfFile}")
-    val destination = new Path(tmpFolder, tfFile).toString
-
-    val destinationScheme = new Path(destination).getFileSystem(spark.sparkContext.hadoopConfiguration).getScheme
-    lazy val target = Paths.get(SparkFiles.getRootDirectory(), tfFile).toString
-    if (destinationScheme == "file")
-      new File(destination).renameTo(new File(target))
-    else
-      spark.sparkContext.addFile(destination)
+    HandleTensorflow.sendToCluster(spark, tf, uid)
 
 
     // 4. Remove tmp folder

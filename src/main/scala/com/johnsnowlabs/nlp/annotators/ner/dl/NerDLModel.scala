@@ -37,24 +37,23 @@ class NerDLModel(override val uid: String)
   def setDatasetParams(params: DatasetEncoderParams) = set(this.datasetParams, params)
 
   override def getModelIfNotSet: TensorflowNer  = {
-    if (_model == null) {
+    if (!isModelSet) {
       require(datasetParams.isSet, "datasetParams must be set before usage")
-      if (tensorflow == null) {
+      if (!isTensorflowSet) {
         println("TENSORFLOW IS NULL IN GET MODEL")
         println("Local tensorflow not set. Re setting")
         getTensorflowIfNotSet
       }
 
       val encoder = new NerDatasetEncoder(datasetParams.get.get)
-      _model =
-        new TensorflowNer(
-          tensorflow,
+      setModel(new TensorflowNer(
+          getTensorflowIfNotSet,
           encoder,
           1, // Tensorflow doesn't clear state in batch
           Verbose.Silent
-        )
+        ))
     }
-    _model
+    getModel
   }
 
   def tag(tokenized: Array[WordpieceEmbeddingsSentence]): Array[NerTaggedSentence] = {
@@ -116,7 +115,7 @@ trait ReadsNERGraph extends ParamsAndFeaturesReadable[NerDLModel] with ReadTenso
   override val tfFile = "tensorflow"
 
   def readNerGraph(instance: NerDLModel, path: String, spark: SparkSession): Unit = {
-    val tf = readTensorflowModel(path, spark, "_nerdl", loadContrib = true)
+    val tf = readTensorflowModel(path, spark, instance.uid, loadContrib = true)
     instance.setTensorflow(tf)
     instance.getModelIfNotSet
   }
