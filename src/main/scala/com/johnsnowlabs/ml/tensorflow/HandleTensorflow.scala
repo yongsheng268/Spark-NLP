@@ -19,7 +19,7 @@ trait HandleTensorflow[T] extends Params {
       val fileName = "tensorflow_"+this.uid
       val target = Paths.get(SparkFiles.getRootDirectory(), fileName).toString
       val path = if (new File(target).exists()) target else SparkFiles.get(fileName)
-      setTensorflow(TensorflowWrapper.read(path, zipped=false, loadContrib=true))
+      setTensorflow(TensorflowWrapper.read(path, zipped=false, loadContrib=true, fileName=Some(fileName)))
     }
     tensorflow
   }
@@ -56,12 +56,13 @@ object HandleTensorflow {
   def sendToCluster(sparkSession: SparkSession, tf: TensorflowWrapper, uid: String): Unit = {
     /** Making this graph available in all nodes */
     val fileName = "tensorflow_"+uid
-    val destinationScheme = new Path(SparkFiles.getRootDirectory())
+    val filePath = Paths.get(SparkFiles.getRootDirectory(), fileName).toString
+    val destinationScheme = new Path(filePath)
       .getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
       .getScheme
-    tf.saveToFile(Paths.get(SparkFiles.getRootDirectory(), fileName).toString)
+    tf.saveToFile(filePath)
     if (destinationScheme != "file")
-      sparkSession.sparkContext.addFile(fileName)
+      sparkSession.sparkContext.addFile(filePath)
   }
 
 }

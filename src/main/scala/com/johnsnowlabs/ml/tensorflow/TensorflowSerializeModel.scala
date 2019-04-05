@@ -74,7 +74,7 @@ trait ReadTensorflowModel extends LoadsContrib {
 
 
     // 4. Remove tmp folder
-    //FileHelper.delete(tmpFolder)
+    FileHelper.delete(tmpFolder)
 
     tf
   }

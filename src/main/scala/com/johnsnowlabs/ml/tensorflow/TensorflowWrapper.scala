@@ -95,7 +95,13 @@ object TensorflowWrapper extends LoadsContrib {
     graph
   }
 
-  def read(file: String, zipped: Boolean = true, useBundle: Boolean = false, tags: Array[String] = Array.empty[String], loadContrib: Boolean = false): TensorflowWrapper = {
+  def read(
+            file: String,
+            zipped: Boolean = true,
+            useBundle: Boolean = false,
+            tags: Array[String] = Array.empty[String],
+            loadContrib: Boolean = false,
+            fileName: Option[String] = None): TensorflowWrapper = {
     val t = new TensorResources()
 
     // 1. Create tmp folder
@@ -124,7 +130,7 @@ object TensorflowWrapper extends LoadsContrib {
       val session = model.session()
       (graph, session)
     } else {
-      val graph = readGraph(Paths.get(folder, "saved_model.pb").toString, loadContrib = loadContrib)
+      val graph = readGraph(Paths.get(folder, fileName.getOrElse("saved_model.pb")).toString, loadContrib = loadContrib)
       val session = new Session(graph, config)
       session.runner.addTarget("save/restore_all")
         .feed("save/Const", t.createTensor(Paths.get(folder, "variables").toString))
@@ -133,7 +139,7 @@ object TensorflowWrapper extends LoadsContrib {
     }
 
     // 4. Remove tmp folder
-    //FileHelper.delete(tmpFolder)
+    FileHelper.delete(tmpFolder)
     t.clearTensors()
 
     new TensorflowWrapper(session, graph)
