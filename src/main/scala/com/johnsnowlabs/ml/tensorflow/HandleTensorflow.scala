@@ -19,7 +19,7 @@ trait HandleTensorflow[T] extends Params {
       val fileName = "tensorflow_"+this.uid
       val target = Paths.get(SparkFiles.getRootDirectory(), fileName).toString
       val path = if (new File(target).exists()) target else SparkFiles.get(fileName)
-      setTensorflow(TensorflowWrapper.read(path, zipped=false, loadContrib=true, fileName=Some(fileName)))
+      setTensorflow(TensorflowWrapper.read(path, loadContrib=true))
     }
     tensorflow
   }
