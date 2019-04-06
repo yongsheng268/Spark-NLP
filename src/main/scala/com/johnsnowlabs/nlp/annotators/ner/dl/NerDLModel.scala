@@ -18,7 +18,6 @@ class NerDLModel(override val uid: String)
   extends AnnotatorModel[NerDLModel]
     with WriteTensorflowModel
     with ParamsAndFeaturesWritable
-    with ReadsNERGraph
     with HandleTensorflow[TensorflowNer]
     with LoadsContrib {
 
