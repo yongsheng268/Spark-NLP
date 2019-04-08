@@ -47,6 +47,11 @@ class Tokenizer(AnnotatorModel):
                           "pattern to grab from text as token candidates. Defaults \S+",
                           typeConverter=TypeConverters.toString)
 
+    extraTargetPattern = Param(Params._dummy(),
+                          "extraTargetPattern",
+                          "extraTargetPattern",
+                          typeConverter=TypeConverters.toString)
+
     prefixPattern = Param(Params._dummy(),
                           "prefixPattern",
                           "regex with groups and begins with \A to match target prefix. Defaults to \A([^\s\w\$\.]*)",
@@ -104,6 +109,9 @@ class Tokenizer(AnnotatorModel):
 
     def setTargetPattern(self, value):
         return self._set(targetPattern=value)
+
+    def setExtraTargetPattern(self, value):
+        return self._set(extraTargetPattern=value)
 
     def setPrefixPattern(self, value):
         return self._set(prefixPattern=value)
