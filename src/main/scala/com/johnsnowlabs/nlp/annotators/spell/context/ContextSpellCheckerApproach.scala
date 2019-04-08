@@ -126,14 +126,13 @@ class ContextSpellCheckerApproach(override val uid: String) extends
       setClasses(classes).
       setVocabTransducer(createTransducer(vocabFreq.keys.toList)).
       setSpecialClassesTransducers(specialClassesTransducers).
-      setTensorflow(tf).
       setInputCols(getOrDefault(inputCols)).
       setWordMaxDist($(wordMaxDistance))
 
     model.readModel(getOrDefault(modelPath), dataset.sparkSession, "", true)
 
     /** Making this graph available in all nodes */
-    HandleTensorflow.sendToCluster(dataset.sparkSession, tf, model.uid)
+    HandleTensorflow.sendToCluster(dataset.sparkSession, model.getModelIfNotSet.tensorflow, model.uid)
 
     get(weightedDistPath)
       .map(path => model.setWeights(loadWeights(path)))
