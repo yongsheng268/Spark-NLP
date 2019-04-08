@@ -7,7 +7,7 @@ import com.johnsnowlabs.nlp.serialization._
 import com.johnsnowlabs.nlp._
 import com.johnsnowlabs.nlp.annotators.spell.context.parser.SpecialClassParser
 import com.johnsnowlabs.nlp.pretrained.ResourceDownloader
-import org.apache.spark.ml.param.{BooleanParam, FloatParam, IntParam}
+import org.apache.spark.ml.param.{BooleanParam, FloatParam, IntParam, Param}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, SparkSession}
 import org.slf4j.LoggerFactory

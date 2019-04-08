@@ -69,6 +69,9 @@ class ContextSpellCheckerApproach(override val uid: String) extends
   val weightedDistPath = new Param[String](this, "weightedDistPath", "The path to the file containing the weights for the levenshtein distance.")
   def setWeights(filePath:String):this.type = set(weightedDistPath, filePath)
 
+  val modelPath = new Param[String](this, "modelPath", "Path of the external TF model.")
+  def setModelPath(g: Float):this.type = set(tradeoff, g)
+
 
   setDefault(minCount -> 3.0,
     specialClasses -> List(DateToken, NumberToken),
@@ -126,6 +129,8 @@ class ContextSpellCheckerApproach(override val uid: String) extends
       setTensorflow(tf).
       setInputCols(getOrDefault(inputCols)).
       setWordMaxDist($(wordMaxDistance))
+
+    model.readModel(getOrDefault(modelPath), dataset.sparkSession, "", true)
 
     /** Making this graph available in all nodes */
     HandleTensorflow.sendToCluster(dataset.sparkSession, tf, model.uid)
