@@ -70,7 +70,7 @@ class ContextSpellCheckerApproach(override val uid: String) extends
   def setWeights(filePath:String):this.type = set(weightedDistPath, filePath)
 
   val modelPath = new Param[String](this, "modelPath", "Path of the external TF model.")
-  def setModelPath(g: Float):this.type = set(tradeoff, g)
+  def setModelPath(g: String):this.type = set(modelPath, g)
 
 
   setDefault(minCount -> 3.0,
