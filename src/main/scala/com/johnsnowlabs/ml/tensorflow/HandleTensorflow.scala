@@ -3,7 +3,6 @@ package com.johnsnowlabs.ml.tensorflow
 import java.io.File
 import java.nio.file.Paths
 
-import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkFiles
 import org.apache.spark.sql.SparkSession
 
@@ -57,12 +56,8 @@ object HandleTensorflow {
     /** Making this graph available in all nodes */
     val fileName = "tensorflow_"+uid
     val filePath = Paths.get(SparkFiles.getRootDirectory(), fileName).toString
-    val destinationScheme = new Path(filePath)
-      .getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
-      .getScheme
     tf.saveToFile(filePath)
-    if (destinationScheme != "file")
-      sparkSession.sparkContext.addFile(filePath)
+    sparkSession.sparkContext.addFile(filePath)
   }
 
 }
