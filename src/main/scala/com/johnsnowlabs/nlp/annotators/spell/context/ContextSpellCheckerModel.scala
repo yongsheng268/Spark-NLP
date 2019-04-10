@@ -7,7 +7,7 @@ import com.johnsnowlabs.nlp.serialization._
 import com.johnsnowlabs.nlp._
 import com.johnsnowlabs.nlp.annotators.spell.context.parser.SpecialClassParser
 import com.johnsnowlabs.nlp.pretrained.ResourceDownloader
-import org.apache.spark.ml.param.{BooleanParam, FloatParam, IntParam}
+import org.apache.spark.ml.param.{BooleanParam, FloatParam, IntParam, Param}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{Dataset, SparkSession}
 import org.slf4j.LoggerFactory
@@ -85,6 +85,7 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
       useBundle,
       tags = Array("our-graph")
     )
+
     setTensorflow(tf)
   }
 
@@ -243,6 +244,10 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
 
       // ask each token class for candidates, keep the one with lower cost
       var candLabelWeight = $$(specialTransducers).flatMap { specialParser =>
+        if(specialParser.transducer == null)
+          throw new RuntimeException(s"${specialParser.label}")
+        println(s"special parser:::${specialParser.label}")
+        println(s"value: ${specialParser.transducer}")
         getClassCandidates(specialParser.transducer, token, specialParser.label, getOrDefault(wordMaxDistance) - 1)
       } ++ getVocabCandidates($$(transducer), token, getOrDefault(wordMaxDistance) -1)
 
