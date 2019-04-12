@@ -53,6 +53,7 @@ class ContextSpellCheckerModel(override val uid: String) extends AnnotatorModel[
   def setWordMaxDist(k: Int):this.type = set(wordMaxDistance, k)
 
   val maxCandidates = new IntParam(this, "maxCandidates", "Maximum number of candidates for every word.")
+  def setMaxCandidates(k: Int):this.type = set(maxCandidates, k)
 
   val tradeoff = new FloatParam(this, "tradeoff", "Tradeoff between the cost of a word and a transition in the language model.")
   def setTradeOff(lambda: Float):this.type = set(tradeoff, lambda)
