@@ -19,7 +19,7 @@ class TensorflowSpell(
   val dropoutRate = "dropout_rate"
 
   /* returns the loss associated with the last word, given previous history  */
-  def predict(dataset: Array[Array[Int]], cids: Array[Array[Int]], cwids:Array[Array[Int]]) = this.synchronized {
+  def predict(dataset: Array[Array[Int]], cids: Array[Array[Int]], cwids:Array[Array[Int]]) = {
 
     val packed = dataset.zip(cids).zip(cwids).map {
       case ((_ids, _cids), _cwids) => Array(_ids, _cids, _cwids)
@@ -28,13 +28,11 @@ class TensorflowSpell(
     val tensors = new TensorResources()
     val inputTensor = tensors.createTensor(packed)
 
-    tensorflow.session.runner
-      .feed(inMemoryInput, inputTensor)
-      .addTarget(testInitOp)
-      .run()
-
     val lossWords = tensorflow.session.runner
       .feed(dropoutRate, tensors.createTensor(1.0f))
+      .feed("batches:0", tensors.createTensor(dataset.map(_.dropRight(1))))
+      .feed("batches:1", tensors.createTensor(cids.map(_.tail)))
+      .feed("batches:2", tensors.createTensor(cwids.map(_.tail)))
       .fetch(lossKey)
       .fetch(validWords)
       .run()
@@ -42,6 +40,7 @@ class TensorflowSpell(
     tensors.clearTensors()
 
     val result = extractFloats(lossWords.get(0))
+    // TODO width should come from somewhere else
     val width = inputTensor.shape()(2)
     result.grouped(width.toInt - 1).map(_.last)
 
