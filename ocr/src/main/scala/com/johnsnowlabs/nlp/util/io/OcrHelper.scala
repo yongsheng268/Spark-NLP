@@ -175,10 +175,10 @@ class OcrHelper extends ImageProcessing with Serializable {
     }
   }
 
-  def createDataset(spark: SparkSession, inputPath: String): Dataset[OcrRow] = {
+  def createDataset(spark: SparkSession, inputPath: String, parallelism:Int = 4): Dataset[OcrRow] = {
     import spark.implicits._
     val sc = spark.sparkContext
-    val files = sc.binaryFiles(inputPath)
+    val files = sc.binaryFiles(inputPath, parallelism)
     files.flatMap {
       // here we handle images directly
       case (fileName, stream) if imageFormats.exists(fileName.endsWith)=>
