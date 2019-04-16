@@ -77,7 +77,9 @@ class MultiImagePDFPage(page: PDPage) extends PDFStreamEngine with ImageProcessi
       g2d.drawImage(chunk, 0, currentY, Color.WHITE, null)
       currentY += chunk.getHeight
     }
+
     g2d.dispose()
+    sortedChunks.foreach(_.flush())
     combined
   }
 }

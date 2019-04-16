@@ -355,12 +355,12 @@ class OcrHelper extends ImageProcessing with Serializable {
         }
       }
 
-      regions.flatMap(_.map { rectangle =>
+      val recognizedRegions = regions.flatMap(_.map { rectangle =>
         tesseract.doOCR(dilatedImage, rectangle)
       })
+      dilatedImage.flush()
+      recognizedRegions
     })
-
-
     (splitPages, splitRegions) match {
       case (true, true) =>
         Option(imageRegions.zipWithIndex.map {case (pageRegions, pagenum) =>
@@ -429,6 +429,7 @@ class OcrHelper extends ImageProcessing with Serializable {
      * https://issues.apache.org/jira/browse/PDFBOX-3388
      */
       pdfDoc.close()
+      fileStream.close()
       result
     }
 
