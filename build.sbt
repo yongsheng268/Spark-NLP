@@ -87,7 +87,7 @@ developers in ThisBuild:= List(
 
 
 lazy val ocrDependencies = Seq(
-  "net.sourceforge.tess4j" % "tess4j" % "4.2.1"
+  "net.sourceforge.tess4j" % "tess4j" % "4.3.1"
     exclude("org.slf4j", "slf4j-log4j12")
     exclude("org.apache.logging", "log4j"),
   "org.apache.pdfbox" % "pdfbox" % "2.0.13",
