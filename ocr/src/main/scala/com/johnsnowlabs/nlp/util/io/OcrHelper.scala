@@ -235,6 +235,8 @@ class OcrHelper extends ImageProcessing with Serializable {
     api
   }
 
+
+
   def reScaleImage(image: PlanarImage, factor: Float) = {
     val width = image.getWidth * factor
     val height = image.getHeight * factor
@@ -432,6 +434,8 @@ class OcrHelper extends ImageProcessing with Serializable {
       fileStream.close()
       result
     }
+    // good moment to hint the GC to collect
+    System.gc()
 
     pagesTry match {
       case Failure(e) =>
@@ -445,10 +449,12 @@ class OcrHelper extends ImageProcessing with Serializable {
 
   private def doImageOcr(fileStream:InputStream):Seq[(Int, String, String)] = {
     val image = ImageIO.read(fileStream)
-    tesseractMethod(Seq(image)).map { _.map { case (region, pagenum) =>
+    val result = tesseractMethod(Seq(image)).map { _.map { case (region, pagenum) =>
          (pagenum, region, OCRMethod.IMAGE_FILE)
        }
     }.getOrElse(Seq.empty)
+    System.gc()
+    result
   }
 
   /*
