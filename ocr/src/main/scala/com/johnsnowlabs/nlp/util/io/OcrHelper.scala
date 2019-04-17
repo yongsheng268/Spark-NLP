@@ -228,11 +228,11 @@ class OcrHelper extends ImageProcessing with Serializable {
 
   private def initTesseract():TesseractAccess = this.synchronized {
     val api = new TesseractAccess()
-    api.initialize()
     val tessDataFolder = LoadLibs.extractTessResources("tessdata")
     api.setDatapath(tessDataFolder.getAbsolutePath)
     api.setPageSegMode(pageSegmentationMode)
     api.setOcrEngineMode(engineMode)
+    api.initialize()
     api
   }
 
