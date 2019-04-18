@@ -99,13 +99,21 @@ class LightPipeline:
         return annotations
 
     def fullAnnotate(self, target):
-        result = []
-        for row in self._lightPipeline.fullAnnotateJava(target):
+        def do_full(cnt):
             kas = {}
-            for atype, annotations in row.items():
+            for atype, annotations in cnt.items():
                 kas[atype] = self._annotation_from_java(annotations)
-            result.append(kas)
-        return result
+            return kas
+        result = []
+        content = self._lightPipeline.fullAnnotateJava(target)
+        if type(target) == str:
+            return do_full(content)
+        elif type(target) == list:
+            for row in content:
+                result.append(do_full(row))
+            return result
+        else:
+            raise Exception("fullAnnotate allows only str or list")
 
     def annotate(self, target):
 
