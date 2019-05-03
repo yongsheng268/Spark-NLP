@@ -10,7 +10,7 @@ import net.sourceforge.tess4j.ITessAPI.{TessOcrEngineMode, TessPageIteratorLevel
 import net.sourceforge.tess4j.Tesseract
 import net.sourceforge.tess4j.util.LoadLibs
 import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
@@ -187,6 +187,10 @@ class OcrHelper extends ImageProcessing with Serializable {
       case (fileName, stream) =>
           doPDFOcr(stream.open, fileName).map{case (pageN, region, method) => OcrRow(region, fileName, pageN, method)}
     }.filter(_.text.nonEmpty).toDS
+  }
+
+  def createDataFrame(spark: SparkSession, inputPath: String): DataFrame = {
+    createDataset(spark, inputPath).toDF
   }
 
   /* WARNING: this only makes sense with splitPages == false, otherwise the map creation discards information(complete pages)
