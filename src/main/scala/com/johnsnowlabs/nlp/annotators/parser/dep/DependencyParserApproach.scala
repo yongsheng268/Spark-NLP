@@ -82,21 +82,15 @@ class DependencyParserApproach(override val uid: String) extends AnnotatorApproa
     }
     logger.info(s"Tagger Performance = $taggerPerformanceProgress")
 
-    var perceptronAsArray = tagger.getPerceptronAsArray
-
-    val greedyTransition = new GreedyTransitionApproach()
-    val dependencyMaker = greedyTransition.loadPerceptronInPrediction(perceptronAsArray, tagger)
+    val dependencyMaker = new DependencyMaker(tagger)
 
     val dependencyMakerPerformanceProgress = (0 until dependencyMakerNumberOfIterations).map{ seed =>
       dependencyMaker.train(trainingSentences, seed)
     }
     logger.info(s"Dependency Maker Performance = $dependencyMakerPerformanceProgress")
 
-    perceptronAsArray = dependencyMaker.getPerceptronAsArray
-
     new DependencyParserModel()
-      .setPerceptronAsArray(perceptronAsArray)
-      .setTagger(tagger)
+      .setMaker(dependencyMaker)
   }
 
   def validateTrainingFiles(): Unit = {

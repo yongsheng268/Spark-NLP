@@ -347,8 +347,4 @@ class DependencyMaker(tagger:Tagger) {
     (correct > 0.99)
   }
 
-  def getPerceptronAsArray: Array[String] = {
-    perceptron.toString().split("\\n")
-  }
-
 }
