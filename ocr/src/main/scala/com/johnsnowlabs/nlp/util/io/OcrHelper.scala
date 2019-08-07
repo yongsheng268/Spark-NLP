@@ -17,15 +17,18 @@ import scala.util.{Failure, Success, Try}
 
 
 /*
- * Perform OCR/text extraction().
- * Receives a path to a set of PDFs
- * Returns one annotation for every region found on every page,
+ * Perform OCR/text extraction.
+ * Receives a path to a set of PDFs or images, or a mix of both.
+ * Both text and image PDFs are supported, supported image formats are PNG and JPG.
+ *
+ * Returns one annotation for every text region found on every page,
  * {result: text, metadata:{source_file: path, pagen_number: number}}
  *
  * can produce multiple annotations for each file, and for each page.
  */
 
 
+/* Decides how the page layout is handled */
 object PageSegmentationMode {
 
   val AUTO = TessPageSegMode.PSM_AUTO
@@ -33,6 +36,7 @@ object PageSegmentationMode {
   val SINGLE_WORD = TessPageSegMode.PSM_SINGLE_WORD
 }
 
+/* Selects engine mode, check Tesseract docs */
 object EngineMode {
 
   val OEM_LSTM_ONLY = TessOcrEngineMode.OEM_LSTM_ONLY
@@ -46,16 +50,25 @@ object PageIteratorLevel {
   val WORD = TessPageIteratorLevel.RIL_WORD
 }
 
+/* kernels used for document erosion, so far only SQUARED is supported */
 object Kernels {
   val SQUARED = 0
 }
 
+/* Used to specify an OCR method according to input files,
+*
+* TEXT_LAYER: only extract a text layer from PDFs, do not OCR.
+* IMAGE_LAYER: perform OCR on the image(s) contained on each page in the PDF.
+* IMAGE_FILE: perform OCR on any mix of image(s) and PDFs files contained in the source path.
+*
+* */
 object OCRMethod {
   val TEXT_LAYER = "text"
   val IMAGE_LAYER = "image"
   val IMAGE_FILE = "image_file"
 }
 
+/* Used to specify the method used for estimating noise in source images */
 object NoiseMethod {
   val VARIANCE = "variance"
   val RATIO = "ratio"
@@ -95,24 +108,31 @@ class OcrHelper extends ImageProcessing with Serializable {
   /* whether to include noise scores or not */
   private var estimateNoise: Option[String] = None
 
+  /* Selects the OCR method {TEXT_LAYER, IMAGE_LAYER, IMAGE_FILE}*/
   def setPreferredMethod(value: String): Unit = {
     require(value == OCRMethod.TEXT_LAYER || value == OCRMethod.IMAGE_LAYER, s"OCR Method must be either" +
       s"'${OCRMethod.TEXT_LAYER}' or '${OCRMethod.IMAGE_LAYER}'")
     preferredMethod = value
   }
 
+  /* Returns current preferred method */
   def getPreferredMethod: String = preferredMethod
 
+  /* Selects which method to apply when the preferred method was not applicable */
   def setFallbackMethod(value: Boolean): Unit = {
     fallbackMethod = value
   }
 
+  /* Returns current fallback method */
   def getFallbackMethod: Boolean = fallbackMethod
 
+  /* Specifies a threshold, in number of characters, below which the default
+   * method is no longer applied giving place to the fallback method. */
   def setMinSizeBeforeFallback(value: Int): Unit = {
     minSizeBeforeFallback = value
   }
 
+  /* Returns the fallback threshold */
   def getMinSizeBeforeFallback: Int = minSizeBeforeFallback
 
   def setPageSegMode(mode: Int): Unit = {
@@ -139,6 +159,9 @@ class OcrHelper extends ImageProcessing with Serializable {
     pageIteratorLevel
   }
 
+  /* Specifies the scaling factor to apply to images, in both axes, before OCR.
+  *  It can scale up the image(factor > 1.0) or scale it down(factor < 1.0)
+  * */
   def setScalingFactor(factor:Float): Unit = {
     if (factor == 1.0f)
       scalingFactor = None
@@ -146,9 +169,12 @@ class OcrHelper extends ImageProcessing with Serializable {
       scalingFactor = Some(factor)
   }
 
-  /* here we make sure '!pageSplit && regionSplit' cannot happen
-  *  if regions are split, then you cannot merge pages(it's not possible).
-  * */
+  /*
+   *  Whether to split text of individual pages in different
+   *  rows or merge them into a single one.
+   *  here we make sure '!pageSplit && regionSplit' cannot happen
+   *  if regions are split, then you cannot merge pages(it's not possible).
+   */
   def setSplitPages(value: Boolean): Unit = {
     splitPages = value
 
@@ -158,6 +184,8 @@ class OcrHelper extends ImageProcessing with Serializable {
 
   def getSplitPages: Boolean = splitPages
 
+  /* Whether to split regions within a page into separate rows
+   * or to merge them into a single one */
   def setSplitRegions(value: Boolean): Unit = {
     splitRegions = value
 
@@ -167,12 +195,19 @@ class OcrHelper extends ImageProcessing with Serializable {
 
   def getSplitRegions: Boolean = splitRegions
 
+  /* If set to true, confidence scores for each region are included in a separate column */
   def setIncludeConfidence(value: Boolean): Unit = {
     useConfidence = value
   }
 
   def getIncludeConfidence:Boolean = useConfidence
 
+  /*
+  * Whether to use erosion before OCR or not.
+  * useIt: enables the feature when set to true.
+  * kSize: the size of the kernel
+  * kernelShape: the shape of the kernel according to 'Kernels' defaults to Kernels.SQUARED
+  * */
   def useErosion(useIt: Boolean, kSize:Int = 2, kernelShape:Int = Kernels.SQUARED): Unit = {
     if (!useIt)
       kernelSize = None
@@ -191,6 +226,16 @@ class OcrHelper extends ImageProcessing with Serializable {
     }
   }
 
+
+  /* This is the main entry point to this OCR Helper
+  *
+  * spark: current active SparkSession..
+  * inputPath: folder containing source files(images, PDFs, or a mix) potentially
+  * placed in distributed file system like HDFS.
+  *
+  * Note: this method is sensible to Spark's default parallelism level
+  * (check spark.default.parallelism).
+  * */
   def createDataset(spark: SparkSession, inputPath: String): Dataset[OcrRow] = {
     import spark.implicits._
     val sc = spark.sparkContext
@@ -207,8 +252,9 @@ class OcrHelper extends ImageProcessing with Serializable {
     }.filter(_.text.nonEmpty).toDS
   }
 
-  /* WARNING: this only makes sense with splitPages == false, otherwise the map creation discards information(complete pages)
-  (multiple pages per file is not supported) */
+  /* WARNING: this only makes sense with splitPages == false, otherwise the
+   * map creation discards information(complete pages)
+   * (multiple pages per file is not supported) */
   def createMap(inputPath: String): Map[String, String] = {
     val files = getListOfFiles(inputPath)
     files.flatMap {case (fileName, stream) =>
@@ -236,6 +282,7 @@ class OcrHelper extends ImageProcessing with Serializable {
     }
   }
 
+  /* Picks the preferred method for source document noise estimation */
   def setEstimateNoise(noiseMethod: String) = {
     estimateNoise = Some(noiseMethod)
   }
@@ -257,7 +304,7 @@ class OcrHelper extends ImageProcessing with Serializable {
     api
   }
 
-  def reScaleImage(image: PlanarImage, factor: Float) = {
+  protected def reScaleImage(image: PlanarImage, factor: Float) = {
     val width = image.getWidth * factor
     val height = image.getHeight * factor
     val scaledImg = image.getAsBufferedImage().
@@ -266,7 +313,7 @@ class OcrHelper extends ImageProcessing with Serializable {
   }
 
   /* erode the image */
-  def erode(bi: BufferedImage, kernelSize: Int) = {
+  protected def erode(bi: BufferedImage, kernelSize: Int) = {
     // convert to grayscale
     val gray = new BufferedImage(bi.getWidth, bi.getHeight, BufferedImage.TYPE_BYTE_GRAY)
     val g = gray.createGraphics()
